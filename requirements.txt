@@ -1,0 +1,6 @@
+flask
+psycopg2-binary
+supabase
+requests
+python-dotenv
+PyPDF2
