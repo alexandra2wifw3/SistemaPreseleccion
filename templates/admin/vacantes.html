@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Mis Vacantes{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:8px;">
+  <div>
+    <div class="page-title">Mis Convocatorias</div>
+    <p class="page-sub">Vacantes que has publicado. Los candidatos las ven en la página principal.</p>
+  </div>
+  <a href="/admin/vacante/nueva" class="btn btn-primary">+ Nueva Vacante</a>
+</div>
+
+{% if vacantes %}
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    {% for v in vacantes %}
+
+    {% set expirada = v.fecha_cierre < hoy %}
+
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;padding:24px 28px;">
+
+      <div style="flex:1;min-width:220px;">
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span style="font-size:1.05rem;font-weight:700;">{{ v.titulo }}</span>
+          {% if v.estado == 'abierta' and not expirada %}
+            <span class="pill pill-green">Abierta</span>
+          {% else %}
+            <span class="pill pill-gray">Cerrada</span>
+          {% endif %}
+        </div>
+
+        <div style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray);line-height:2;">
+          Cierre:
+          <span style="color:{% if expirada %}var(--red){% else %}var(--amber){% endif %};">
+            {{ v.fecha_cierre.strftime('%d/%m/%Y') }}{% if expirada %} · vencida{% endif %}
+          </span>
+          &nbsp;·&nbsp;
+          Total: <span style="color:var(--white);">{{ v.total_postulantes }}</span>
+          &nbsp;·&nbsp;
+          <span style="color:var(--green);">{{ v.aprobados }} aprobados</span>
+          &nbsp;·&nbsp;
+          <span style="color:var(--amber);">{{ v.pendientes }} pendientes</span>
+          &nbsp;·&nbsp;
+          <span style="color:var(--red);">{{ v.rechazados }} rechazados</span>
+        </div>
+
+        {% if v.descripcion %}
+        <p style="margin-top:10px;font-size:0.83rem;color:var(--gray);max-width:580px;line-height:1.6;">
+          {{ v.descripcion[:160] }}{% if v.descripcion|length > 160 %}…{% endif %}
+        </p>
+        {% endif %}
+
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end;">
+        <a href="/admin/vacante/{{ v.id_vacante }}/postulantes" class="btn btn-primary" style="white-space:nowrap;">
+          Ver Postulantes →
+        </a>
+        {% if v.estado == 'abierta' and not expirada %}
+        <form method="POST" action="/admin/vacante/{{ v.id_vacante }}/cerrar" style="margin:0;">
+          <button type="submit" class="btn btn-danger" style="width:100%;justify-content:center;"
+            onclick="return confirm('¿Cerrar esta vacante? Ya no se aceptarán nuevas postulaciones.')">
+            Cerrar vacante
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="card" style="text-align:center;padding:72px 24px;">
+    <div style="font-size:2.5rem;margin-bottom:16px;">📋</div>
+    <p style="color:var(--gray);font-size:0.95rem;line-height:1.7;">
+      Aún no has publicado ninguna vacante.<br>
+      Crea tu primera convocatoria para empezar a recibir postulantes.
+    </p>
+    <a href="/admin/vacante/nueva" class="btn btn-primary" style="margin-top:24px;">
+      + Crear primera vacante
+    </a>
+  </div>
+{% endif %}
+
+{% endblock %}

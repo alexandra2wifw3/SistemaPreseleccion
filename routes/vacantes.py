@@ -5,6 +5,9 @@ from flask import (
 from services.db import get_db
 from routes.auth import login_requerido
 from datetime import date
+from services.analisis import consultar_simulador, calcular_score
+from services.cv_parser import analizar_cv
+import json
 
 vacantes_bp = Blueprint("vacantes", __name__)
 
@@ -148,19 +151,64 @@ def nueva_vacante_post():
 
 
 # ── POST /admin/vacante/<id>/cerrar — Cerrar manualmente ─────────
-@vacantes_bp.route("/admin/vacante/<int:id_vacante>/cerrar",
-                   methods=["POST"])
+@vacantes_bp.route("/admin/vacante/<int:id_vacante>/cerrar", methods=["POST"])
 @login_requerido
 def cerrar_vacante(id_vacante):
     conn = get_db()
     cur  = conn.cursor()
+
     cur.execute("""
         UPDATE vacante SET estado = 'cerrada'
         WHERE id_vacante = %s AND id_reclutador = %s
     """, (id_vacante, session["reclutador_id"]))
     conn.commit()
+
+    # ── Procesar todos los postulantes pendientes ───────────────
+    cur.execute("""
+        SELECT id_postulante, cedula, archivo_pdf
+        FROM postulante
+        WHERE id_vacante = %s AND estado = 'pendiente'
+    """, (id_vacante,))
+    pendientes = cur.fetchall()
+
+    for p in pendientes:
+        try:
+            resultado_cv    = analizar_cv(p["archivo_pdf"])
+            score_cv        = resultado_cv.get("score_cv", 0)
+            datos_simulador = consultar_simulador(p["cedula"])
+            resultado       = calcular_score(datos_simulador, score_cv)
+
+            cur.execute("""
+                INSERT INTO resultado_analisis
+                    (id_postulante, score_regulatorio, score_cv,
+                     score_total, licencia_tipo, licencia_estado,
+                     licencia_puntos, citaciones_pendientes,
+                     deuda_pendiente, detalle_json)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (id_postulante) DO UPDATE SET
+                    score_total = EXCLUDED.score_total,
+                    procesado_at = CURRENT_TIMESTAMP
+            """, (
+                p["id_postulante"],
+                resultado["score_regulatorio"], resultado["score_cv"],
+                resultado["score_total"], resultado["licencia_tipo"],
+                resultado["licencia_estado"], resultado["licencia_puntos"],
+                resultado["citaciones_pendientes"], resultado["deuda_pendiente"],
+                json.dumps(resultado, ensure_ascii=False)
+            ))
+
+            cur.execute("""
+                UPDATE postulante SET score_total=%s, estado=%s
+                WHERE id_postulante=%s
+            """, (resultado["score_total"], resultado["estado"], p["id_postulante"]))
+
+        except Exception as e:
+            print(f"[cerrar_vacante] Error procesando {p['cedula']}: {e}")
+            continue
+
+    conn.commit()
     cur.close()
     conn.close()
 
-    flash("Vacante cerrada. Ya no se aceptan postulaciones.", "info")
+    flash("Vacante cerrada. Postulantes analizados y rankeados.", "success")
     return redirect(url_for("vacantes.admin_vacantes"))

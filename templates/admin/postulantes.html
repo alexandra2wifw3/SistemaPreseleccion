@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Postulantes · {{ vacante.titulo }}{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;">
+
+  <a href="/admin/vacantes" style="font-size:0.82rem;color:var(--gray);text-decoration:none;
+     display:inline-flex;align-items:center;gap:6px;margin-bottom:24px;">
+    ← Volver a mis vacantes
+  </a>
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:8px;">
+    <div>
+      <div class="page-title">{{ vacante.titulo }}</div>
+      <p class="page-sub">
+        Cierre: <span style="color:var(--amber);">{{ vacante.fecha_cierre.strftime('%d/%m/%Y') }}</span>
+        &nbsp;·&nbsp;
+        {% if vacante.estado == 'abierta' %}
+          <span class="pill pill-green">Abierta</span>
+        {% else %}
+          <span class="pill pill-gray">Cerrada</span>
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  {% if postulantes %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Postulante</th>
+          <th>Cédula</th>
+          <th>Contacto</th>
+          <th>Score Total</th>
+          <th>Score CV</th>
+          <th>Score Reg.</th>
+          <th>Licencia</th>
+          <th>Estado</th>
+          <th>CV</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in postulantes %}
+        <tr>
+          <td class="td-text">
+            <div style="font-weight:600;">{{ p.nombres }} {{ p.apellidos }}</div>
+          </td>
+          <td>{{ p.cedula }}</td>
+          <td>
+            <div style="font-size:0.75rem;line-height:1.8;">
+              {{ p.email }}<br>{{ p.telefono }}
+            </div>
+          </td>
+          <td>
+            {% if p.score_total is not none %}
+              <span style="font-weight:700;color:
+                {% if p.score_total >= 70 %}var(--green)
+                {% elif p.score_total >= 40 %}var(--amber)
+                {% else %}var(--red){% endif %};">
+                {{ p.score_total }}
+              </span>
+            {% else %}
+              <span style="color:var(--gray);">—</span>
+            {% endif %}
+          </td>
+          <td>{{ p.score_cv if p.score_cv is not none else '—' }}</td>
+          <td>{{ p.score_regulatorio if p.score_regulatorio is not none else '—' }}</td>
+          <td>
+            <div style="font-size:0.75rem;line-height:1.8;">
+              {{ p.licencia_tipo or '—' }}<br>
+              <span style="color:{% if p.licencia_estado == 'vigente' %}var(--green){% else %}var(--red){% endif %};">
+                {{ p.licencia_estado or '—' }}
+              </span>
+            </div>
+          </td>
+          <td>
+            {% if p.estado == 'aprobado' %}
+              <span class="pill pill-green">Aprobado</span>
+            {% elif p.estado == 'rechazado' %}
+              <span class="pill pill-red">Rechazado</span>
+            {% else %}
+              <span class="pill pill-amber">Pendiente</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.archivo_pdf %}
+              <a href="{{ p.archivo_pdf }}" target="_blank" class="btn btn-secondary"
+                 style="padding:6px 14px;font-size:0.78rem;">Ver PDF</a>
+            {% else %}
+              <span style="color:var(--gray);font-size:0.78rem;">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <div class="card" style="text-align:center;padding:72px 24px;">
+    <div style="font-size:2.5rem;margin-bottom:16px;">👥</div>
+    <p style="color:var(--gray);font-size:0.95rem;line-height:1.7;">
+      Aún no hay postulantes para esta vacante.<br>
+      Comparte el enlace público para recibir candidatos.
+    </p>
+
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
