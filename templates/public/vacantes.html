@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Convocatorias Abiertas{% endblock %}
+
+{% block content %}
+<div class="page-title">Convocatorias Abiertas</div>
+<p class="page-sub">Selecciona una vacante para ver los detalles y postularte.</p>
+
+{% if vacantes %}
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    {% for v in vacantes %}
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;">
+      <div>
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px;">{{ v.titulo }}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray);line-height:1.9;">
+          Publicado por: <span style="color:var(--white);">{{ v.nombre_reclutador }}</span><br>
+          Cierre: <span style="color:var(--amber);">{{ v.fecha_cierre.strftime('%d/%m/%Y') }}</span>
+        </div>
+        {% if v.descripcion %}
+        <p style="margin-top:10px;font-size:0.85rem;color:var(--gray);max-width:580px;line-height:1.6;">
+          {{ v.descripcion[:160] }}{% if v.descripcion|length > 160 %}…{% endif %}
+        </p>
+        {% endif %}
+      </div>
+      <a href="/vacante/{{ v.id_vacante }}" class="btn btn-primary">Ver y Postularme →</a>
+    </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="card" style="text-align:center;padding:72px 24px;">
+    <div style="font-size:2.5rem;margin-bottom:16px;">📋</div>
+    <p style="color:var(--gray);font-size:0.95rem;line-height:1.7;">
+      No hay convocatorias abiertas en este momento.<br>
+      Vuelve pronto para revisar nuevas oportunidades.
+    </p>
+  </div>
+{% endif %}
+{% endblock %}
