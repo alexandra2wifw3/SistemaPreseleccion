@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Panel Principal{% endblock %}
+
+{% block content %}
+<div class="page-title">Panel del Reclutador</div>
+<p class="page-sub">Resumen general de tus convocatorias y postulantes.</p>
+
+<!-- Stats -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px;">
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:8px;">Vacantes</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:500;">{{ stats.total_vacantes or 0 }}</div>
+  </div>
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:8px;">Postulantes</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:500;">{{ stats.total_postulantes or 0 }}</div>
+  </div>
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:8px;">Aprobados</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:500;color:var(--green);">{{ stats.aprobados or 0 }}</div>
+  </div>
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:8px;">Rechazados</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:500;color:var(--red);">{{ stats.rechazados or 0 }}</div>
+  </div>
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:8px;">Pendientes</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:500;color:var(--amber);">{{ stats.pendientes or 0 }}</div>
+  </div>
+</div>
+
+<!-- Últimas vacantes -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+  <h3 style="font-size:1rem;font-weight:700;">Últimas convocatorias</h3>
+  <a href="/admin/vacantes" class="btn btn-secondary" style="padding:8px 16px;font-size:0.8rem;">Ver todas</a>
+</div>
+
+{% if vacantes %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Vacante</th>
+        <th>Cierre</th>
+        <th>Estado</th>
+        <th>Postulantes</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in vacantes %}
+      <tr>
+        <td class="td-text">{{ v.titulo }}</td>
+        <td>{{ v.fecha_cierre.strftime('%d/%m/%Y') }}</td>
+        <td>
+          {% if v.estado == 'abierta' %}
+            <span class="pill pill-green">Abierta</span>
+          {% elif v.estado == 'cerrada' %}
+            <span class="pill pill-amber">Cerrada</span>
+          {% else %}
+            <span class="pill pill-blue">Procesada</span>
+          {% endif %}
+        </td>
+        <td>{{ v.total_postulantes }}</td>
+        <td>
+          <a href="/admin/vacante/{{ v.id_vacante }}/resultados"
+             class="btn btn-secondary" style="padding:6px 14px;font-size:0.78rem;">
+            Ver ranking →
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:48px 24px;">
+  <p style="color:var(--gray);margin-bottom:20px;">Aún no tienes convocatorias creadas.</p>
+  <a href="/admin/vacante/nueva" class="btn btn-primary">+ Crear primera vacante</a>
+</div>
+{% endif %}
+
+<div style="margin-top:24px;">
+  <a href="/admin/vacante/nueva" class="btn btn-primary">+ Nueva convocatoria</a>
+</div>
+{% endblock %}
