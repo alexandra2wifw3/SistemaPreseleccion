@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Nueva Vacante{% endblock %}
+
+{% block content %}
+<div style="max-width:620px;margin:0 auto;">
+  <a href="/admin/vacantes" style="font-size:0.82rem;color:var(--gray);text-decoration:none;
+     display:inline-flex;align-items:center;gap:6px;margin-bottom:24px;">
+    ← Volver a vacantes
+  </a>
+
+  <div class="page-title">Nueva Convocatoria</div>
+  <p class="page-sub">Completa los datos para publicar una nueva vacante.</p>
+
+  <div class="card" style="padding:36px;">
+    <form method="POST" action="/admin/vacante/nueva"
+          style="display:flex;flex-direction:column;gap:18px;">
+
+      <div class="field">
+        <label class="field-label">Título del puesto *</label>
+        <input type="text" name="titulo" class="field-input"
+               placeholder="Ej: Conductor de flota pesada" required />
+      </div>
+
+      <div class="field">
+        <label class="field-label">Descripción del puesto</label>
+        <textarea name="descripcion" class="field-input"
+                  placeholder="Describe brevemente el puesto y las responsabilidades…"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Requisitos</label>
+        <textarea name="requisitos" class="field-input"
+                  placeholder="Ej: Licencia tipo E, mínimo 3 años de experiencia…"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Fecha límite de postulación *</label>
+        <input type="date" name="fecha_cierre" class="field-input" required />
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;padding:14px;">
+          Publicar Convocatoria →
+        </button>
+        <a href="/admin/vacantes" class="btn btn-secondary" style="padding:14px 20px;">
+          Cancelar
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
