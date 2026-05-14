@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Postulación — {{ vacante.titulo }}{% endblock %}
+
+{% block content %}
+
+{% if expirada %}
+  <div style="max-width:520px;margin:80px auto;text-align:center;">
+    <div class="card" style="padding:56px 40px;">
+      <div style="font-size:3rem;margin-bottom:16px;">⏰</div>
+      <h2 style="font-size:1.5rem;font-weight:800;color:var(--red);margin-bottom:10px;">Convocatoria cerrada</h2>
+      <p style="color:var(--gray);font-size:0.9rem;line-height:1.7;margin-bottom:28px;">
+        La fecha de postulación para <strong style="color:var(--white);">{{ vacante.titulo }}</strong>
+        venció el {{ vacante.fecha_cierre.strftime('%d/%m/%Y') }}.
+        Espera una nueva convocatoria.
+      </p>
+      <a href="/" class="btn btn-secondary">← Ver otras convocatorias</a>
+    </div>
+  </div>
+
+{% else %}
+  <div style="max-width:620px;margin:0 auto;">
+
+    <!-- Info de la vacante -->
+    <div class="card" style="margin-bottom:20px;padding:20px 28px;border-left:3px solid var(--cyan);">
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:6px;">{{ vacante.titulo }}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.76rem;color:var(--gray);line-height:1.8;">
+        Cierre: <span style="color:var(--amber);">{{ vacante.fecha_cierre.strftime('%d/%m/%Y') }}</span>
+      </div>
+      {% if vacante.requisitos %}
+      <p style="margin-top:10px;font-size:0.83rem;color:var(--gray);line-height:1.6;">
+        <strong style="color:var(--white);">Requisitos:</strong> {{ vacante.requisitos }}
+      </p>
+      {% endif %}
+    </div>
+
+    <!-- Formulario -->
+    <div class="card" style="padding:36px;" id="formCard">
+      <h2 style="font-size:1.3rem;font-weight:800;margin-bottom:6px;">Formulario de Postulación</h2>
+      <p style="color:var(--gray);font-size:0.83rem;margin-bottom:28px;">
+        Completa todos los campos y adjunta tu hoja de vida en PDF.
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="field">
+            <label class="field-label">Nombres *</label>
+            <input type="text" id="nombres" class="field-input" placeholder="Juan Carlos" />
+          </div>
+          <div class="field">
+            <label class="field-label">Apellidos *</label>
+            <input type="text" id="apellidos" class="field-input" placeholder="Pérez López" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Número de Cédula *</label>
+          <input type="text" id="cedula" class="field-input" placeholder="1234567890" maxlength="10" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="field">
+            <label class="field-label">Teléfono</label>
+            <input type="text" id="telefono" class="field-input" placeholder="0991234567" />
+          </div>
+          <div class="field">
+            <label class="field-label">Correo electrónico</label>
+            <input type="email" id="email" class="field-input" placeholder="correo@ejemplo.com" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Hoja de Vida (PDF) *</label>
+          <input type="file" id="pdf" accept=".pdf" class="field-input" style="padding:10px 16px;" />
+        </div>
+
+        <div style="background:rgba(6,182,212,0.05);border:1px solid rgba(6,182,212,0.15);border-radius:10px;padding:16px 18px;">
+          <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;">
+            <input type="checkbox" id="acepta" style="margin-top:3px;accent-color:var(--cyan);" />
+            <span style="font-size:0.82rem;color:var(--gray);line-height:1.6;">
+              Acepto que mis datos personales y hoja de vida sean procesados con fines de
+              selección de personal, conforme a la
+              <strong style="color:var(--white);">Ley Orgánica de Protección de Datos Personales del Ecuador</strong>.
+              Los datos serán tratados de forma confidencial.
+            </span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary" id="btnEnviar" onclick="postular()"
+                style="width:100%;justify-content:center;padding:15px;font-size:0.95rem;">
+          <div class="spinner" id="spinner" style="display:none;"></div>
+          <span id="btnTexto">Enviar Postulación →</span>
+        </button>
+      </div>
+
+      <div id="errorBox" class="alert alert-error" style="display:none;margin-top:16px;"></div>
+    </div>
+
+  </div>
+
+  <!-- ── MODAL DE CONFIRMACIÓN ── -->
+  <div id="modalOverlay" style="
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(10,22,40,0.85);
+    backdrop-filter:blur(8px);
+    z-index:999;
+    align-items:center;
+    justify-content:center;
+  ">
+    <div style="
+      background:#0f1f3a;
+      border:1px solid rgba(16,185,129,0.3);
+      border-radius:20px;
+      padding:52px 44px;
+      max-width:440px;
+      width:90%;
+      text-align:center;
+      animation:fadeUp .3s ease;
+      box-shadow:0 0 60px rgba(16,185,129,0.1);
+    ">
+      <div style="
+        width:72px;height:72px;
+        background:rgba(16,185,129,0.12);
+        border:2px solid rgba(16,185,129,0.4);
+        border-radius:50%;
+        display:flex;align-items:center;justify-content:center;
+        font-size:2rem;
+        margin:0 auto 24px;
+      ">✅</div>
+
+      <h2 style="font-size:1.6rem;font-weight:800;color:var(--green);margin-bottom:10px;">
+        ¡Postulación recibida!
+      </h2>
+      <p style="color:var(--gray);font-size:0.88rem;line-height:1.8;margin-bottom:8px;">
+        Tu información ha sido registrada exitosamente y será evaluada una vez que cierre la convocatoria.
+      </p>
+      <p style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--cyan);margin-bottom:32px;">
+        <span id="modalNombre"></span>
+      </p>
+
+      <button onclick="cerrarModal()" class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;">
+        Aceptar
+      </button>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function postular() {
+  const nombres   = document.getElementById('nombres').value.trim();
+  const apellidos = document.getElementById('apellidos').value.trim();
+  const cedula    = document.getElementById('cedula').value.trim();
+  const telefono  = document.getElementById('telefono').value.trim();
+  const email     = document.getElementById('email').value.trim();
+  const pdf       = document.getElementById('pdf').files[0];
+  const acepta    = document.getElementById('acepta').checked;
+  const errBox    = document.getElementById('errorBox');
+
+  errBox.style.display = 'none';
+
+  if (!nombres || !apellidos) { mostrarError('Ingresa nombres y apellidos.'); return; }
+  if (!cedula || cedula.length !== 10 || isNaN(cedula)) { mostrarError('Cédula inválida — debe tener 10 dígitos.'); return; }
+  if (!pdf) { mostrarError('Adjunta tu hoja de vida en PDF.'); return; }
+  if (!acepta) { mostrarError('Debes aceptar los términos de uso de datos.'); return; }
+
+  document.getElementById('spinner').style.display = 'inline-block';
+  document.getElementById('btnTexto').textContent = 'Enviando…';
+  document.getElementById('btnEnviar').disabled = true;
+
+  const formData = new FormData();
+  formData.append('nombres',   nombres);
+  formData.append('apellidos', apellidos);
+  formData.append('cedula',    cedula);
+  formData.append('telefono',  telefono);
+  formData.append('email',     email);
+  formData.append('pdf',       pdf);
+  formData.append('acepta_terminos', '1');
+
+  try {
+    const res  = await fetch('/postular/{{ vacante.id_vacante }}', {
+      method: 'POST', body: formData
+    });
+    const json = await res.json();
+
+    if (!res.ok || json.error) {
+      mostrarError(json.error || 'Error al enviar la postulación.');
+      resetBtn();
+      return;
+    }
+
+    // Mostrar modal
+    document.getElementById('modalNombre').textContent = json.nombres || '';
+    document.getElementById('modalOverlay').style.display = 'flex';
+    resetBtn();
+
+  } catch(e) {
+    mostrarError('No se pudo conectar con el servidor.');
+    resetBtn();
+  }
+}
+
+function cerrarModal() {
+  document.getElementById('modalOverlay').style.display = 'none';
+  // Limpiar formulario
+  document.getElementById('nombres').value   = '';
+  document.getElementById('apellidos').value = '';
+  document.getElementById('cedula').value    = '';
+  document.getElementById('telefono').value  = '';
+  document.getElementById('email').value     = '';
+  document.getElementById('pdf').value       = '';
+  document.getElementById('acepta').checked  = false;
+  document.getElementById('errorBox').style.display = 'none';
+}
+
+function mostrarError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = '⚠ ' + msg;
+  box.style.display = 'block';
+}
+
+function resetBtn() {
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('btnTexto').textContent = 'Enviar Postulación →';
+  document.getElementById('btnEnviar').disabled = false;
+}
+</script>
+{% endblock %}
