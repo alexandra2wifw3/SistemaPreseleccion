@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Ranking — {{ vacante.titulo }}{% endblock %}
+
+{% block content %}
+
+<a href="/admin/vacantes" style="font-size:0.82rem;color:var(--gray);text-decoration:none;
+   display:inline-flex;align-items:center;gap:6px;margin-bottom:24px;">
+  ← Volver a vacantes
+</a>
+
+<div class="page-title">{{ vacante.titulo }}</div>
+<p class="page-sub">
+  Cierre: {{ vacante.fecha_cierre.strftime('%d/%m/%Y') }} &nbsp;·&nbsp;
+  <span class="pill {% if vacante.estado == 'abierta' %}pill-green{% elif vacante.estado == 'cerrada' %}pill-amber{% else %}pill-blue{% endif %}">
+    {{ vacante.estado }}
+  </span>
+</p>
+
+<!-- Stats -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;">
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:6px;">Total</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.5rem;">{{ stats.total }}</div>
+  </div>
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:6px;">Aprobados</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.5rem;color:var(--green);">{{ stats.aprobados }}</div>
+  </div>
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:6px;">Rechazados</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.5rem;color:var(--red);">{{ stats.rechazados }}</div>
+  </div>
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:6px;">Pendientes</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.5rem;color:var(--amber);">{{ stats.pendientes }}</div>
+  </div>
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:6px;">Score Promedio</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.5rem;">{{ stats.promedio }}</div>
+  </div>
+</div>
+
+<!-- Mejor candidato -->
+{% if mejor and mejor.score_total %}
+<div class="card" style="margin-bottom:24px;border-color:rgba(6,182,212,0.3);
+     background:rgba(6,182,212,0.04);padding:20px 28px;">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;
+       color:var(--cyan);margin-bottom:10px;">🏆 Mejor Candidato</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+    <div>
+      <div style="font-size:1.1rem;font-weight:700;">{{ mejor.apellidos }} {{ mejor.nombres }}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.76rem;color:var(--gray);margin-top:4px;">
+        CI: {{ mejor.cedula }} &nbsp;·&nbsp;
+        Licencia: {{ mejor.licencia_tipo or '—' }} &nbsp;·&nbsp;
+        Puntos: {{ mejor.licencia_puntos or '—' }}
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div style="text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:2rem;font-weight:500;color:var(--cyan);">
+          {{ mejor.score_total }}
+        </div>
+        <div style="font-size:0.65rem;color:var(--gray);text-transform:uppercase;">score</div>
+      </div>
+      <a href="/admin/candidato/{{ mejor.id_postulante }}" class="btn btn-primary" style="padding:9px 18px;font-size:0.82rem;">
+        Ver detalle →
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Botón procesar pendientes -->
+{% if stats.pendientes > 0 %}
+<div style="margin-bottom:16px;">
+  <button class="btn btn-secondary" id="btnProcesar"
+          onclick="procesarPendientes({{ vacante.id_vacante }})">
+    <div class="spinner" id="spinnerP" style="display:none;"></div>
+    <span id="txtProcesar">⚡ Procesar {{ stats.pendientes }} pendientes</span>
+  </button>
+  <div id="procResult" style="display:none;margin-top:10px;" class="alert alert-success"></div>
+</div>
+{% endif %}
+
+<!-- Ranking -->
+{% if candidatos %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Candidato</th>
+        <th>Cédula</th>
+        <th>Score Total</th>
+        <th>Regulatorio</th>
+        <th>CV</th>
+        <th>Licencia</th>
+        <th>Puntos Lic.</th>
+        <th>Cit. Pend.</th>
+        <th>Estado</th>
+        <th>Detalle</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in candidatos %}
+      <tr {% if loop.first and c.score_total %}style="background:rgba(6,182,212,0.04);"{% endif %}>
+        <td style="font-weight:700;color:{% if loop.index == 1 %}var(--cyan){% else %}var(--gray){% endif %};">
+          {{ loop.index }}
+        </td>
+        <td class="td-text">{{ c.apellidos }} {{ c.nombres }}</td>
+        <td>{{ c.cedula }}</td>
+        <td>
+          {% if c.score_total is not none %}
+            <span style="font-family:'DM Mono',monospace;font-weight:500;
+              color:{% if c.score_total >= 70 %}var(--green){% elif c.score_total >= 50 %}var(--amber){% else %}var(--red){% endif %};">
+              {{ c.score_total }}/100
+            </span>
+          {% else %}
+            <span style="color:var(--gray);">—</span>
+          {% endif %}
+        </td>
+        <td>{{ c.score_regulatorio or '—' }}</td>
+        <td>{{ c.score_cv or '—' }}</td>
+        <td>{{ c.licencia_tipo or '—' }}</td>
+        <td>{{ c.licencia_puntos or '—' }}</td>
+        <td>
+          {% if c.citaciones_pendientes %}
+            <span style="color:var(--red);">{{ c.citaciones_pendientes }}</span>
+          {% else %}
+            <span style="color:var(--green);">0</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if c.estado == 'aprobado' %}
+            <span class="pill pill-green">Aprobado</span>
+          {% elif c.estado == 'rechazado' %}
+            <span class="pill pill-red">Rechazado</span>
+          {% else %}
+            <span class="pill pill-amber">Pendiente</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="/admin/candidato/{{ c.id_postulante }}"
+             class="btn btn-secondary" style="padding:5px 12px;font-size:0.75rem;">
+            Ver →
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+<div class="card" style="text-align:center;padding:56px 24px;">
+  <div style="font-size:2.5rem;margin-bottom:14px;">👥</div>
+  <p style="color:var(--gray);">Aún no hay postulantes para esta vacante.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function procesarPendientes(idVacante) {
+  document.getElementById('spinnerP').style.display = 'inline-block';
+  document.getElementById('txtProcesar').textContent = 'Procesando…';
+  document.getElementById('btnProcesar').disabled = true;
+
+  try {
+    const res  = await fetch(`/admin/vacante/${idVacante}/procesar`, { method: 'POST' });
+    const json = await res.json();
+    const box  = document.getElementById('procResult');
+    box.textContent = json.mensaje || 'Procesado.';
+    box.style.display = 'block';
+    setTimeout(() => location.reload(), 1500);
+  } catch(e) {
+    alert('Error al procesar.');
+  } finally {
+    document.getElementById('spinnerP').style.display = 'none';
+    document.getElementById('txtProcesar').textContent = 'Procesar pendientes';
+    document.getElementById('btnProcesar').disabled = false;
+  }
+}
+</script>
+{% endblock %}
