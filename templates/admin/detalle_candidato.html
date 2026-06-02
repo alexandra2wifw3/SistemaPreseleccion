@@ -38,7 +38,7 @@
       <!-- Score total -->
       <div style="text-align:center;">
         <div style="font-family:'DM Mono',monospace;font-size:3.2rem;font-weight:500;line-height:1;
-             color:{% if candidato.score_total >= 70 %}var(--green){% elif candidato.score_total >= 50 %}var(--amber){% else %}var(--red){% endif %};">
+             color:{% if (candidato.score_total or 0) >= 70 %}var(--green){% elif (candidato.score_total or 0) >= 50 %}var(--amber){% else %}var(--red){% endif %};">
           {{ candidato.score_total or 0 }}
         </div>
         <div style="font-size:0.65rem;color:var(--gray);text-transform:uppercase;margin-top:4px;">score / 100</div>

@@ -74,7 +74,6 @@ def logout():
 
 
 # ── GET /registro (solo para crear el primer reclutador) ─────────
-# IMPORTANTE: deshabilitar en producción real
 @auth_bp.route("/registro", methods=["GET", "POST"])
 def registro():
     if request.method == "POST":
