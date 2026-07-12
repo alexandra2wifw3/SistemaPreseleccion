@@ -12,7 +12,7 @@ import json
 vacantes_bp = Blueprint("vacantes", __name__)
 
 
-# ── GET / — Lista pública de vacantes abiertas ───────────────────
+# -- GET / — Lista pública de vacantes abiertas ----------------------------
 @vacantes_bp.route("/")
 def index():
     conn = get_db()
@@ -45,7 +45,7 @@ def index():
     return render_template("public/vacantes.html", vacantes=vacantes)
 
 
-# ── GET /vacante/<id> — Detalle público de una vacante ───────────
+# -- GET /vacante/<id> — Detalle público de una vacante ----------------------------
 @vacantes_bp.route("/vacante/<int:id_vacante>")
 def detalle(id_vacante):
     conn = get_db()
@@ -73,8 +73,8 @@ def detalle(id_vacante):
     )
 
 
-# ── GET /admin/vacantes — Panel del reclutador ───────────────────
-@vacantes_bp.route("/admin/vacantes")
+# -- GET /reclutador/vacantes — Panel del reclutador ----------------------------
+@vacantes_bp.route("/reclutador/vacantes")
 @login_requerido
 def admin_vacantes():
     conn = get_db()
@@ -96,21 +96,21 @@ def admin_vacantes():
     conn.close()
 
     return render_template(
-        "admin/vacantes.html",
+        "reclutador/vacantes.html",
         vacantes=vacantes,
         hoy=date.today()
     )
 
 
-# ── GET /admin/vacante/nueva — Formulario nueva vacante ──────────
-@vacantes_bp.route("/admin/vacante/nueva", methods=["GET"])
+# -- GET /reclutador/vacante/nueva — Formulario nueva vacante ----------------------------
+@vacantes_bp.route("/reclutador/vacante/nueva", methods=["GET"])
 @login_requerido
 def nueva_vacante():
-    return render_template("admin/vacante_new.html")
+    return render_template("reclutador/vacante_new.html")
 
 
-# ── POST /admin/vacante/nueva — Guardar vacante ──────────────────
-@vacantes_bp.route("/admin/vacante/nueva", methods=["POST"])
+# -- POST /reclutador/vacante/nueva — Guardar vacante ----------------------------
+@vacantes_bp.route("/reclutador/vacante/nueva", methods=["POST"])
 @login_requerido
 def nueva_vacante_post():
     titulo       = request.form.get("titulo", "").strip()
@@ -120,17 +120,17 @@ def nueva_vacante_post():
 
     if not titulo or not fecha_cierre:
         flash("El título y la fecha de cierre son obligatorios.", "error")
-        return render_template("admin/vacante_new.html")
+        return render_template("reclutador/vacante_new.html")
 
     # Validar que la fecha sea futura
     try:
         fc = date.fromisoformat(fecha_cierre)
         if fc <= date.today():
             flash("La fecha de cierre debe ser futura.", "error")
-            return render_template("admin/vacante_new.html")
+            return render_template("reclutador/vacante_new.html")
     except ValueError:
         flash("Fecha inválida.", "error")
-        return render_template("admin/vacante_new.html")
+        return render_template("reclutador/vacante_new.html")
 
     conn = get_db()
     cur  = conn.cursor()
@@ -150,8 +150,8 @@ def nueva_vacante_post():
     return redirect(url_for("vacantes.admin_vacantes"))
 
 
-# ── POST /admin/vacante/<id>/cerrar — Cerrar manualmente ─────────
-@vacantes_bp.route("/admin/vacante/<int:id_vacante>/cerrar", methods=["POST"])
+# -- POST /reclutador/vacante/<id>/cerrar — Cerrar manualmente ----------------------------
+@vacantes_bp.route("/reclutador/vacante/<int:id_vacante>/cerrar", methods=["POST"])
 @login_requerido
 def cerrar_vacante(id_vacante):
     conn = get_db()
@@ -163,7 +163,7 @@ def cerrar_vacante(id_vacante):
     """, (id_vacante, session["reclutador_id"]))
     conn.commit()
 
-    # ── Procesar todos los postulantes pendientes ───────────────
+    # -- Procesar todos los postulantes pendientes ----------------------------
     cur.execute("""
         SELECT id_postulante, cedula, archivo_pdf
         FROM postulante

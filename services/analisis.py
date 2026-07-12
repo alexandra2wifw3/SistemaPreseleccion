@@ -152,7 +152,7 @@ def calcular_score(datos_simulador, score_cv=0):
     citaciones = datos_simulador.get("citaciones") or []
     deuda      = float(datos_simulador.get("total_pendiente") or 0)
 
-    # ── 1. ESTADO DE LICENCIA (40 pts) ───────────────────────────
+    # -- 1. ESTADO DE LICENCIA (40 pts) ----------------------------
     # Base legal: Art. 186 LOTTTSV — requisito de licencia vigente
     estado_lic = licencia.get("estado", "")
 
@@ -175,7 +175,7 @@ def calcular_score(datos_simulador, score_cv=0):
     else:
         score_lic = 0    # SUSPENDIDA — inhabilitado legalmente
 
-    # ── 2. PUNTOS DE LICENCIA (25 pts) ───────────────────────────
+    # -- 2. PUNTOS DE LICENCIA (25 pts) ----------------------------
     # Base legal: Art. 187 LOTTTSV — sistema de 30 puntos
     puntos_lic = int(licencia.get("puntos") or 0)
     if puntos_lic >= 28:
@@ -191,7 +191,7 @@ def calcular_score(datos_simulador, score_cv=0):
     else:
         score_puntos = 0     # alto riesgo de suspensión
 
-    # ── 3. CITACIONES PENDIENTES (20 pts) ────────────────────────
+    # -- 3. CITACIONES PENDIENTES (20 pts) ----------------------------
     # Base legal: Arts. 383-392 COIP 2021
     n_pendientes = len(pendientes)
     if n_pendientes == 0:
@@ -203,7 +203,7 @@ def calcular_score(datos_simulador, score_cv=0):
     else:
         score_cit = 0
 
-    # ── 4. DEUDA PENDIENTE (15 pts) ──────────────────────────────
+    # -- 4. DEUDA PENDIENTE (15 pts) ----------------------------
     # Base legal: Art. 193 LOTTTSV — obligación de pago de multas
     if deuda == 0:
         score_deuda = 15
@@ -216,7 +216,7 @@ def calcular_score(datos_simulador, score_cv=0):
     else:
         score_deuda = 0
 
-    # ── 5. PENALIZACIONES POR CLASE DE INFRACCIÓN (COIP 2021) ────
+    # -- 5. PENALIZACIONES POR CLASE DE INFRACCIÓN (COIP 2021) ----------------------------
     penalizacion     = 0
     infracciones_det = []
 
@@ -235,31 +235,31 @@ def calcular_score(datos_simulador, score_cv=0):
             "estado":       c.get("estado", "")
         })
 
-    # ── Score regulatorio ─────────────────────────────────────────
+    # -- Score regulatorio ----------------------------
     score_regulatorio = (
         score_lic + score_puntos + score_cit + score_deuda
     )
     score_regulatorio = max(0, score_regulatorio - penalizacion)
     score_regulatorio = min(100, score_regulatorio)
 
-    # ── Score final con bonus CV ──────────────────────────────────
+    # -- Score final con bonus CV ----------------------------
     score_cv_aplicado = min(int(score_cv), 20)
     score_total       = min(100, score_regulatorio + score_cv_aplicado)
     estado            = "aprobado" if score_total >= 60 else "rechazado"
 
     return {
-        # ── Resultado final ───────────────────────────────────────
+        # ── Resultado final ----------------------------
         "score_regulatorio":      score_regulatorio,
         "score_cv":               score_cv_aplicado,
         "score_total":            score_total,
         "estado":                 estado,
 
-        # ── Datos de licencia ─────────────────────────────────────
+        # -- Datos de licencia ----------------------------
         "licencia_tipo":          licencia.get("tipo", "—"),
         "licencia_estado":        estado_lic or "—",
         "licencia_puntos":        puntos_lic,
 
-        # ── Datos de citaciones ───────────────────────────────────
+        # -- Datos de citaciones ----------------------------
         "citaciones_pendientes":  n_pendientes,
         "citaciones_impugnadas":  len(impugnadas),
         "citaciones_pagadas":     len(pagadas),
@@ -267,7 +267,7 @@ def calcular_score(datos_simulador, score_cv=0):
         "deuda_pendiente":        deuda,
         "penalizacion_total":     penalizacion,
 
-        # ── Desglose para dashboard ───────────────────────────────
+        # -- Desglose para dashboard ----------------------------
         "desglose": {
             "licencia":     score_lic,
             "puntos":       score_puntos,
@@ -277,10 +277,10 @@ def calcular_score(datos_simulador, score_cv=0):
             "bonus_cv":     score_cv_aplicado,
         },
 
-        # ── Detalle de cada infracción clasificada ────────────────
+        # -- Detalle de cada infracción clasificada ----------------------------
         "infracciones": infracciones_det,
 
-        # ── Base legal  ─────────────────────
+        # -- Base legal  ----------------------------
         "base_legal": {
             "licencia":  "Art. 186 LOTTTSV — requisito licencia vigente",
             "puntos":    "Art. 187 LOTTTSV — sistema de puntos (máx. 30)",

@@ -10,7 +10,7 @@ import re
 #  Base legal: Reglamento a la LOTTTSV — tipos de licencia
 # ════════════════════════════════════════════════════════════════
 
-# ── Tipos de licencia profesional según LOTTTSV ──────────────────
+# -- Tipos de licencia profesional según LOTTTSV ----------------------------
 # Fuente: https://www.ant.gob.ec/licencias-de-conducir
 LICENCIAS_PROFESIONALES = {
     "E": {
@@ -63,7 +63,7 @@ LICENCIAS_PROFESIONALES = {
     }
 }
 
-# ── Experiencia en conducción profesional ─────────────────────────
+# -- Experiencia en conducción profesional ----------------------------
 KEYWORDS_EXPERIENCIA = [
     "conductor profesional", "chofer profesional",
     "conductor de flota", "operador de flota",
@@ -76,7 +76,7 @@ KEYWORDS_EXPERIENCIA = [
     "transporte empresarial", "rutas de transporte"
 ]
 
-# ── Años de experiencia (mínimo 2 años para flotas) ──────────────
+# -- Años de experiencia (mínimo 2 años para flotas) ----------------------------
 KEYWORDS_ANIOS_EXPERIENCIA = {
     "alta":  [
         "10 años", "9 años", "8 años", "7 años", "6 años",
@@ -91,7 +91,7 @@ KEYWORDS_ANIOS_EXPERIENCIA = {
     ]
 }
 
-# ── Formación y certificaciones relevantes ────────────────────────
+# -- Formación y certificaciones relevantes ----------------------------
 KEYWORDS_FORMACION = [
     "manejo defensivo", "conducción defensiva",
     "primeros auxilios", "seguridad vial",
@@ -103,7 +103,7 @@ KEYWORDS_FORMACION = [
     "gps y telemetría", "tacógrafo"
 ]
 
-# ── Referencias laborales en transporte ──────────────────────────
+# -- Referencias laborales en transporte ----------------------------
 KEYWORDS_REFERENCIAS = [
     "empresa de transporte", "compañía de transporte",
     "cooperativa de transporte", "flota de vehículos",
@@ -254,7 +254,7 @@ def analizar_cv(pdf_url):
             "desglose_cv":   {}
         }
 
-    # ── Detecciones ───────────────────────────────────────────────
+    # -- Detecciones ----------------------------
     tipo_lic, pts_licencia   = detectar_licencia(texto)
     pts_experiencia          = detectar_experiencia(texto)
     pts_flota                = detectar_experiencia_flota(texto)

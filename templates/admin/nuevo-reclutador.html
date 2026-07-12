@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Reclutador{% endblock %}
+
+{% block content %}
+<div style="max-width:520px;margin:0 auto;">
+
+  <div style="margin-bottom:28px;">
+    <a href="/admin/panel"
+       style="color:var(--gray);font-size:0.82rem;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;">
+      ← Volver al panel
+    </a>
+    <div class="page-title">Nuevo reclutador</div>
+    <p class="page-sub">Las credenciales generadas aquí serán entregadas al reclutador para acceder al sistema.</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div style="padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:0.84rem;
+        background:{% if category=='error' %}rgba(239,68,68,0.1){% else %}rgba(16,185,129,0.1){% endif %};
+        color:{% if category=='error' %}var(--red){% else %}var(--green){% endif %};
+        border:1px solid {% if category=='error' %}rgba(239,68,68,0.25){% else %}rgba(16,185,129,0.25){% endif %};">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card" style="padding:36px;">
+
+    <form method="POST" action="/admin/reclutadores/nuevo"
+          style="display:flex;flex-direction:column;gap:18px;">
+
+      <div class="field">
+        <label class="field-label">Nombre completo</label>
+        <input type="text" name="nombre" class="field-input"
+               placeholder="Ej: María González" required
+               value="{{ request.form.get('nombre', '') }}" />
+      </div>
+
+      <div class="field">
+        <label class="field-label">Correo electrónico</label>
+        <input type="email" name="email" class="field-input"
+               placeholder="reclutador@empresa.com" required
+               value="{{ request.form.get('email', '') }}" />
+        <span style="font-size:0.72rem;color:var(--gray);margin-top:4px;display:block;">
+          Este correo será usado para iniciar sesión.
+        </span>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Contraseña temporal</label>
+        <div style="position:relative;">
+          <input type="password" name="password" id="passwordInput" class="field-input"
+                 placeholder="Mínimo 8 caracteres" required
+                 style="padding-right:44px;" />
+          <button type="button" onclick="togglePass()"
+                  style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                         background:none;border:none;cursor:pointer;color:var(--gray);font-size:1rem;">
+            👁
+          </button>
+        </div>
+        <span style="font-size:0.72rem;color:var(--gray);margin-top:4px;display:block;">
+          El reclutador podrá cambiarla después desde su perfil.
+        </span>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <a href="/admin/panel" class="btn btn-secondary"
+           style="flex:1;justify-content:center;padding:12px;">
+          Cancelar
+        </a>
+        <button type="submit" class="btn btn-primary"
+                style="flex:2;justify-content:center;padding:12px;">
+          Crear reclutador →
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Nota informativa -->
+  <div style="margin-top:16px;padding:14px 16px;border-radius:8px;
+              background:rgba(245,197,24,0.06);border:1px solid rgba(245,197,24,0.2);">
+    <p style="font-size:0.78rem;color:var(--gray);line-height:1.6;">
+      <strong style="color:var(--amber);">Nota:</strong>
+      Una vez creado el reclutador, entrega el correo y la contraseña de forma segura.
+      El acceso al sistema estará disponible de inmediato en <code style="font-size:0.75rem;">/login</code>.
+    </p>
+  </div>
+
+</div>
+
+<script>
+  function togglePass() {
+    const inp = document.getElementById('passwordInput');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+</script>
+{% endblock %}

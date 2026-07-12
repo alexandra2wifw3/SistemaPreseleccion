@@ -5,9 +5,9 @@
 <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:8px;">
   <div>
     <div class="page-title">Mis Convocatorias</div>
-    <p class="page-sub">Vacantes que has publicado. Los candidatos las ven en la página principal.</p>
+    <p class="page-sub">Se detallan las vacantes creadas por ti.</p>
   </div>
-  <a href="/admin/vacante/nueva" class="btn btn-primary">+ Nueva Vacante</a>
+  <a href="/reclutador/vacante/nueva" class="btn btn-primary">+ Nueva Vacante</a>
 </div>
 
 {% if vacantes %}
@@ -53,11 +53,11 @@
       </div>
 
       <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end;">
-        <a href="/admin/vacante/{{ v.id_vacante }}/postulantes" class="btn btn-primary" style="white-space:nowrap;">
+        <a href="/reclutador/vacante/{{ v.id_vacante }}/postulantes" class="btn btn-primary" style="white-space:nowrap;">
           Ver Postulantes →
         </a>
         {% if v.estado == 'abierta' and not expirada %}
-        <form method="POST" action="/admin/vacante/{{ v.id_vacante }}/cerrar" style="margin:0;">
+        <form method="POST" action="/reclutador/vacante/{{ v.id_vacante }}/cerrar" style="margin:0;">
           <button type="submit" class="btn btn-danger" style="width:100%;justify-content:center;"
             onclick="return confirm('¿Cerrar esta vacante? Ya no se aceptarán nuevas postulaciones.')">
             Cerrar vacante
@@ -77,7 +77,7 @@
       Aún no has publicado ninguna vacante.<br>
       Crea tu primera convocatoria para empezar a recibir postulantes.
     </p>
-    <a href="/admin/vacante/nueva" class="btn btn-primary" style="margin-top:24px;">
+    <a href="/reclutador/vacante/nueva" class="btn btn-primary" style="margin-top:24px;">
       + Crear primera vacante
     </a>
   </div>

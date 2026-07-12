@@ -17,6 +17,7 @@
     --green:  #10b981;
     --amber:  #f59e0b;
     --gray:   #64748b;
+    --surface: rgba(255,255,255,0.05);
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -47,6 +48,7 @@
   .nav-link:hover { color:var(--white); background:var(--glass); border-color:var(--border); }
   .nav-link.active { color:var(--white); background:rgba(26,86,219,0.18); border-color:rgba(26,86,219,0.4); }
   .nav-badge { font-family:'DM Mono',monospace; font-size:0.68rem; padding:4px 12px; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.25); border-radius:20px; color:var(--cyan); }
+  .nav-badge-admin { font-family:'DM Mono',monospace; font-size:0.68rem; padding:4px 12px; background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.25); border-radius:20px; color:var(--red); }
   .nav-user { display:flex; align-items:center; gap:8px; font-size:0.82rem; color:var(--gray); }
   .nav-user strong { color:var(--white); }
   .btn-logout { padding:7px 14px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--gray); font-family:'Syne',sans-serif; font-size:0.8rem; cursor:pointer; transition:all .2s; text-decoration:none; }
@@ -116,7 +118,7 @@
   @media(max-width:640px) {
     .navbar { padding:14px 16px; }
     main { padding:24px 14px 60px; }
-    .nav-badge { display:none; }
+    .nav-badge, .nav-badge-admin { display:none; }
   }
 </style>
 {% block extra_css %}{% endblock %}
@@ -129,21 +131,56 @@
     <span>FlotaRH</span>
   </a>
 
-  {% if session.get('reclutador_id') %}
+  {% if session.get('admin_id') %}
+    <!-- Sesión de Administrador -->
     <div class="nav-links">
-      <a href="/admin" class="nav-link {% if request.path == '/admin' %}active{% endif %}">Panel</a>
-      <a href="/admin/vacantes" class="nav-link {% if '/vacantes' in request.path %}active{% endif %}">Vacantes</a>
+      <a href="/admin/panel"
+         class="nav-link {% if request.path == '/admin/panel' %}active{% endif %}">
+        Panel Admin
+      </a>
+      <a href="/admin/reclutadores/nuevo"
+         class="nav-link {% if '/reclutadores/nuevo' in request.path %}active{% endif %}">
+        + Reclutador
+      </a>
     </div>
     <div class="nav-user">
-      Hola, <strong>{{ session.get('reclutador_nombre','') }}</strong>
+      <span class="nav-badge-admin">ADMIN</span>
+      Hola, <strong>{{ session.get('admin_nombre', '') }}</strong>
+      <a href="/admin/logout" class="btn-logout">Salir</a>
+    </div>
+
+  {% elif session.get('reclutador_id') %}
+    <!-- Sesión de Reclutador -->
+    <div class="nav-links">
+      <a href="/reclutador"
+         class="nav-link {% if request.path == '/admin' %}active{% endif %}">
+        Panel
+      </a>
+      <a href="/reclutador/vacantes"
+         class="nav-link {% if '/vacantes' in request.path %}active{% endif %}">
+        Vacantes
+      </a>
+    </div>
+    <div class="nav-user">
+      Hola, <strong>{{ session.get('reclutador_nombre', '') }}</strong>
       <a href="/logout" class="btn-logout">Salir</a>
     </div>
+
   {% else %}
+    <!-- Visitante público -->
     <div class="nav-links">
-      <a href="/" class="nav-link {% if request.path=='/' %}active{% endif %}">Convocatorias</a>
+      <a href="/"
+         class="nav-link {% if request.path == '/' %}active{% endif %}">
+        Convocatorias
+      </a>
     </div>
-    <div class="nav-badge">Sistema de Reclutamiento</div>
-    <a href="/login" class="btn btn-secondary" style="padding:7px 16px;font-size:0.8rem;">Acceso Reclutador</a>
+    <a href="/login" class="btn btn-secondary" style="padding:7px 16px;font-size:0.8rem;">
+      Acceso Reclutador
+    </a>
+    <a href="/reclutador/login" class="btn btn-secondary"
+       style="padding:7px 16px;font-size:0.8rem;border-color:rgba(244,63,94,0.3);color:var(--red);">
+      Acceso Admin
+    </a>
   {% endif %}
 </nav>
 
@@ -159,7 +196,9 @@
 
 <main>{% block content %}{% endblock %}</main>
 
-<footer>FlotaNWCV · Sistema de Preselección  · Base legal: COIP 2021 Arts. 383-392</footer>
+<footer>
+  FlotaRH · Sistema de Preselección · Base legal: COIP 2021 Arts. 383-392
+</footer>
 
 {% block extra_js %}{% endblock %}
 </body>

@@ -8,11 +8,12 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
 # ── Registrar Blueprints ──────────────────────────────────────────
+from routes.admin       import admin_bp
 from routes.auth        import auth_bp
 from routes.vacantes    import vacantes_bp
 from routes.postulantes import postulantes_bp
 from routes.dashboard   import dashboard_bp
-
+app.register_blueprint(admin_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(vacantes_bp)
 app.register_blueprint(postulantes_bp)

@@ -12,8 +12,8 @@ import json
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
-# ── GET /admin — Panel principal ─────────────────────────────────
-@dashboard_bp.route("/admin")
+# -- GET /reclutador — Panel principal ----------------------------
+@dashboard_bp.route("/reclutador")
 @login_requerido
 def index():
     conn = get_db()
@@ -50,15 +50,15 @@ def index():
     conn.close()
 
     return render_template(
-        "admin/dashboard.html",
+        "reclutador/dashboard.html",
         stats=stats,
         vacantes=vacantes,
         hoy=date.today()
     )
 
 
-# ── GET /admin/vacante/<id>/resultados — Ranking de candidatos ───
-@dashboard_bp.route("/admin/vacante/<int:id_vacante>/resultados")
+# -- GET /reclutador/vacante/<id>/resultados — Ranking de candidatos ----------------------------
+@dashboard_bp.route("/reclutador/vacante/<int:id_vacante>/resultados")
 @login_requerido
 def resultados(id_vacante):
     conn = get_db()
@@ -120,7 +120,7 @@ def resultados(id_vacante):
     conn.close()
 
     return render_template(
-        "admin/candidatos.html",
+        "reclutador/candidatos.html",
         vacante=vacante,
         candidatos=candidatos,
         stats=stats,
@@ -128,8 +128,8 @@ def resultados(id_vacante):
     )
 
 
-# ── GET /admin/candidato/<id> — Detalle de un candidato ─────────
-@dashboard_bp.route("/admin/candidato/<int:id_postulante>")
+# -- GET /reclutador/candidato/<id> — Detalle de un candidato ----------------------------
+@dashboard_bp.route("/reclutador/candidato/<int:id_postulante>")
 @login_requerido
 def detalle_candidato(id_postulante):
     conn = get_db()
@@ -162,16 +162,16 @@ def detalle_candidato(id_postulante):
             detalle = {}
 
     return render_template(
-        "admin/detalle_candidato.html",
+        "reclutador/detalle_candidato.html",
         candidato=candidato,
         detalle=detalle
     )
 
 
-# ── POST /admin/vacante/<id>/procesar — Procesar pendientes ──────
+# -- POST /reclutador/vacante/<id>/procesar — Procesar pendientes ----------------------------
 # Se activa manualmente cuando el reclutador quiere re-analizar
 @dashboard_bp.route(
-    "/admin/vacante/<int:id_vacante>/procesar",
+    "/reclutador/vacante/<int:id_vacante>/procesar",
     methods=["POST"]
 )
 @login_requerido

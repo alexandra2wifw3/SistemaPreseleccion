@@ -3,7 +3,7 @@
 
 {% block content %}
 
-<a href="/admin/vacantes" style="font-size:0.82rem;color:var(--gray);text-decoration:none;
+<a href="/reclutador/vacantes" style="font-size:0.82rem;color:var(--gray);text-decoration:none;
    display:inline-flex;align-items:center;gap:6px;margin-bottom:24px;">
   ← Volver a vacantes
 </a>
@@ -62,7 +62,7 @@
         </div>
         <div style="font-size:0.65rem;color:var(--gray);text-transform:uppercase;">score</div>
       </div>
-      <a href="/admin/candidato/{{ mejor.id_postulante }}" class="btn btn-primary" style="padding:9px 18px;font-size:0.82rem;">
+      <a href="/reclutador/candidato/{{ mejor.id_postulante }}" class="btn btn-primary" style="padding:9px 18px;font-size:0.82rem;">
         Ver detalle →
       </a>
     </div>
@@ -140,7 +140,7 @@
           {% endif %}
         </td>
         <td>
-          <a href="/admin/candidato/{{ c.id_postulante }}"
+          <a href="/reclutador/candidato/{{ c.id_postulante }}"
              class="btn btn-secondary" style="padding:5px 12px;font-size:0.75rem;">
             Ver →
           </a>
@@ -168,7 +168,7 @@ async function procesarPendientes(idVacante) {
   document.getElementById('btnProcesar').disabled = true;
 
   try {
-    const res  = await fetch(`/admin/vacante/${idVacante}/procesar`, { method: 'POST' });
+    const res  = await fetch(`/reclutador/vacante/${idVacante}/procesar`, { method: 'POST' });
     const json = await res.json();
     const box  = document.getElementById('procResult');
     box.textContent = json.mensaje || 'Procesado.';

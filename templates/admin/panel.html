@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Panel Administrador{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+  <div>
+    <div class="page-title">Panel Administrador</div>
+    <p class="page-sub">Gestión de reclutadores del sistema FLOTARH.</p>
+  </div>
+  <a href="/admin/logout"
+     style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);
+            color:var(--gray);font-size:0.8rem;text-decoration:none;
+            background:var(--surface);transition:background .2s;"
+     onmouseover="this.style.background='rgba(239,68,68,0.08)';this.style.color='var(--red)'"
+     onmouseout="this.style.background='var(--surface)';this.style.color='var(--gray)'">
+    Cerrar sesión
+  </a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div style="padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:0.84rem;
+      background:{% if category=='error' %}rgba(239,68,68,0.1){% elif category=='success' %}rgba(16,185,129,0.1){% else %}rgba(59,130,246,0.1){% endif %};
+      color:{% if category=='error' %}var(--red){% elif category=='success' %}var(--green){% else %}var(--cyan){% endif %};
+      border:1px solid {% if category=='error' %}rgba(239,68,68,0.25){% elif category=='success' %}rgba(16,185,129,0.25){% else %}rgba(59,130,246,0.25){% endif %};">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endwith %}
+
+<!-- Stat -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px;">
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:8px;">Reclutadores</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:500;">{{ reclutadores|length }}</div>
+  </div>
+</div>
+
+<!-- Cabecera tabla -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+  <h3 style="font-size:1rem;font-weight:700;">Reclutadores registrados</h3>
+  <a href="/admin/reclutadores/nuevo" class="btn btn-primary"
+     style="padding:8px 16px;font-size:0.8rem;">+ Nuevo reclutador</a>
+</div>
+
+{% if reclutadores %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nombre</th>
+        <th>Correo</th>
+        <th>Registrado</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in reclutadores %}
+      <tr>
+        <td style="font-family:'DM Mono',monospace;color:var(--gray);">{{ loop.index }}</td>
+        <td class="td-text" style="font-weight:600;">{{ r.nombre }}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:0.8rem;">{{ r.email }}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--gray);">
+          {{ r.created_at.strftime('%d/%m/%Y') if r.created_at else '—' }}
+        </td>
+        <td>
+          <form method="POST"
+                action="/admin/reclutadores/{{ r.id_reclutador }}/eliminar"
+                onsubmit="return confirm('¿Eliminar a {{ r.nombre }}? Esta acción no se puede deshacer.')">
+            <button type="submit"
+                    style="padding:5px 12px;border-radius:6px;border:1px solid rgba(239,68,68,0.3);
+                           background:rgba(239,68,68,0.08);color:var(--red);font-size:0.78rem;
+                           cursor:pointer;font-family:inherit;">
+              Eliminar
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+<div class="card" style="text-align:center;padding:48px 24px;">
+  <p style="color:var(--gray);margin-bottom:20px;">No hay reclutadores registrados aún.</p>
+  <a href="/admin/reclutadores/nuevo" class="btn btn-primary">+ Crear primer reclutador</a>
+</div>
+{% endif %}
+
+{% endblock %}

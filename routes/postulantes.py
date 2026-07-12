@@ -9,7 +9,7 @@ from datetime import date
 postulantes_bp = Blueprint("postulantes", __name__)
 
 
-# ── POST /postular/<id_vacante> ──────────────────────────────────
+# -- POST /postular/<id_vacante> ----------------------------
 @postulantes_bp.route("/postular/<int:id_vacante>", methods=["POST"])
 def postular(id_vacante):
     cedula    = request.form.get("cedula",    "").strip()
@@ -56,7 +56,7 @@ def postular(id_vacante):
         cur.close(); conn.close()
         return jsonify({"error": "Ya existe una postulación con esta cédula para esta vacante."}), 409
 
-    # ── Solo subir PDF y guardar, sin analizar ──────────────────
+    # -- Solo subir PDF y guardar, sin analizar ----------------------------
     try:
         pdf_bytes = pdf.read()
         pdf_url   = subir_pdf(cedula, pdf_bytes)
@@ -82,8 +82,8 @@ def postular(id_vacante):
         "nombres": f"{nombres} {apellidos}",
     })
 
-# ── GET /admin/vacante/<id>/postulantes ──────────────────────────
-@postulantes_bp.route("/admin/vacante/<int:id_vacante>/postulantes")
+# -- GET /reclutador/vacante/<id>/postulantes ----------------------------
+@postulantes_bp.route("/reclutador/vacante/<int:id_vacante>/postulantes")
 @login_requerido
 def admin_postulantes(id_vacante):
     conn = get_db()
@@ -114,7 +114,7 @@ def admin_postulantes(id_vacante):
     cur.close(); conn.close()
 
     return render_template(
-        "admin/postulantes.html",
+        "reclutador/postulantes.html",
         vacante=vacante,
         postulantes=postulantes
     )

@@ -3,18 +3,18 @@ from flask import (
     redirect, url_for, session, flash
 )
 from services.db import get_db
-import hashlib
-
+import bcrypt
 auth_bp = Blueprint("auth", __name__)
 
 
 def hash_password(password):
-    """SHA-256 simple. En producción usar bcrypt."""
-    return hashlib.sha256(password.encode()).hexdigest()
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
+def verificar_password(password, hash_guardado):
+    return bcrypt.checkpw(password.encode(), hash_guardado.encode())
 
 def login_requerido(f):
-    """Decorador que protege rutas de admin."""
+    """Decorador que protege rutas de reclutador."""
     from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -25,7 +25,7 @@ def login_requerido(f):
     return decorated
 
 
-# ── GET /login ───────────────────────────────────────────────────
+# -- GET /login ----------------------------
 @auth_bp.route("/login", methods=["GET"])
 def login():
     if "reclutador_id" in session:
@@ -33,7 +33,7 @@ def login():
     return render_template("auth/login.html")
 
 
-# ── POST /login ──────────────────────────────────────────────────
+# -- POST /login ----------------------------
 @auth_bp.route("/login", methods=["POST"])
 def login_post():
     email    = request.form.get("email", "").strip().lower()
@@ -53,7 +53,7 @@ def login_post():
     cur.close()
     conn.close()
 
-    if not reclutador or reclutador["password_hash"] != hash_password(password):
+    if not reclutador or not verificar_password(password, reclutador["password_hash"]):
         flash("Correo o contraseña incorrectos.", "error")
         return render_template("auth/login.html")
 
@@ -65,42 +65,9 @@ def login_post():
     return redirect(url_for("dashboard.index"))
 
 
-# ── GET /logout ──────────────────────────────────────────────────
+# -- GET /logout ----------------------------
 @auth_bp.route("/logout")
 def logout():
     session.clear()
     flash("Sesión cerrada correctamente.", "info")
     return redirect(url_for("auth.login"))
-
-
-# ── GET /registro (solo para crear el primer reclutador) ─────────
-@auth_bp.route("/registro", methods=["GET", "POST"])
-def registro():
-    if request.method == "POST":
-        nombre   = request.form.get("nombre", "").strip()
-        email    = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
-
-        if not nombre or not email or not password:
-            flash("Completa todos los campos.", "error")
-            return render_template("auth/registro.html")
-
-        conn = get_db()
-        cur  = conn.cursor()
-        try:
-            cur.execute("""
-                INSERT INTO reclutador (nombre, email, password_hash)
-                VALUES (%s, %s, %s)
-            """, (nombre, email, hash_password(password)))
-            conn.commit()
-            flash("Reclutador creado correctamente.", "success")
-            return redirect(url_for("auth.login"))
-        except Exception:
-            conn.rollback()
-            flash("El correo ya está registrado.", "error")
-            return render_template("auth/registro.html")
-        finally:
-            cur.close()
-            conn.close()
-
-    return render_template("auth/registro.html")
