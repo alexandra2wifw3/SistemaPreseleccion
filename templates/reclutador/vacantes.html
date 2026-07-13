@@ -53,7 +53,8 @@
       </div>
 
       <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end;">
-        <a href="/reclutador/vacante/{{ v.id_vacante }}/postulantes" class="btn btn-primary" style="white-space:nowrap;">
+        <a href="/reclutador/vacante/{{ v.id_vacante }}/resultados" 
+          class="btn btn-primary" style="white-space:nowrap;">
           Ver Postulantes →
         </a>
         {% if v.estado == 'abierta' and not expirada %}

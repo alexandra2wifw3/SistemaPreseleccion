@@ -32,7 +32,6 @@
 <!-- Últimas vacantes -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
   <h3 style="font-size:1rem;font-weight:700;">Últimas convocatorias</h3>
-  <a href="/reclutador/vacantes" class="btn btn-secondary" style="padding:8px 16px;font-size:0.8rem;">Ver todas</a>
 </div>
 
 {% if vacantes %}
@@ -44,7 +43,6 @@
         <th>Cierre</th>
         <th>Estado</th>
         <th>Postulantes</th>
-        <th>Acción</th>
       </tr>
     </thead>
     <tbody>
@@ -62,12 +60,6 @@
           {% endif %}
         </td>
         <td>{{ v.total_postulantes }}</td>
-        <td>
-          <a href="/reclutador/vacante/{{ v.id_vacante }}/resultados"
-             class="btn btn-secondary" style="padding:6px 14px;font-size:0.78rem;">
-            Ver ranking →
-          </a>
-        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -80,7 +72,4 @@
 </div>
 {% endif %}
 
-<div style="margin-top:24px;">
-  <a href="/reclutador/vacante/nueva" class="btn btn-primary">+ Nueva convocatoria</a>
-</div>
 {% endblock %}
