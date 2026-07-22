@@ -2,7 +2,7 @@ from flask import (
     Blueprint, render_template, request,
     redirect, url_for, session, jsonify
 )
-from services.db      import get_db
+from services.db import get_db, release_db
 from services.analisis import consultar_simulador, calcular_score
 from services.cv_parser import analizar_cv
 from routes.auth      import login_requerido
@@ -14,6 +14,7 @@ dashboard_bp = Blueprint("dashboard", __name__)
 
 # -- GET /reclutador — Panel principal ----------------------------
 @dashboard_bp.route("/reclutador")
+@dashboard_bp.route("/reclutador/dashboard")
 @login_requerido
 def index():
     conn = get_db()
@@ -47,7 +48,7 @@ def index():
     vacantes = cur.fetchall()
 
     cur.close()
-    conn.close()
+    release_db(conn)
 
     return render_template(
         "reclutador/dashboard.html",
@@ -72,7 +73,7 @@ def resultados(id_vacante):
     vacante = cur.fetchone()
 
     if not vacante:
-        cur.close(); conn.close()
+        cur.close(); release_db(conn)
         return render_template("404.html"), 404
 
     # Ranking de postulantes ordenado por score
@@ -117,7 +118,7 @@ def resultados(id_vacante):
     }
 
     cur.close()
-    conn.close()
+    release_db(conn)
 
     return render_template(
         "reclutador/candidatos.html",
@@ -148,7 +149,7 @@ def detalle_candidato(id_postulante):
     """, (id_postulante,))
     candidato = cur.fetchone()
     cur.close()
-    conn.close()
+    release_db(conn)
 
     if not candidato:
         return render_template("404.html"), 404
@@ -243,7 +244,7 @@ def procesar_pendientes(id_vacante):
 
     conn.commit()
     cur.close()
-    conn.close()
+    release_db(conn)
 
     return jsonify({
         "mensaje":    f"{procesados} postulantes procesados.",

@@ -2,7 +2,7 @@ from flask import (
     Blueprint, render_template, request,
     redirect, url_for, session, flash
 )
-from services.db import get_db
+from services.db import get_db, release_db
 from functools import wraps
 import bcrypt
 
@@ -34,7 +34,7 @@ def login():
         cur  = conn.cursor()
         cur.execute("SELECT * FROM administrador WHERE email = %s", (email,))
         admin = cur.fetchone()
-        cur.close(); conn.close()
+        cur.close(); release_db(conn)
 
         if not admin or not bcrypt.checkpw(password.encode(), admin["password_hash"].encode()):
             flash("Credenciales incorrectas.", "error")
@@ -60,7 +60,7 @@ def panel():
     cur  = conn.cursor()
     cur.execute("SELECT id_reclutador, nombre, email, created_at FROM reclutador ORDER BY created_at DESC")
     reclutadores = cur.fetchall()
-    cur.close(); conn.close()
+    cur.close(); release_db(conn)
     return render_template("admin/panel.html", reclutadores=reclutadores)
 
 # -- Crear reclutador ----------------------------
@@ -91,7 +91,7 @@ def nuevo_reclutador():
             flash("El correo ya está registrado.", "error")
             return render_template("admin/nuevo-reclutador.html")
         finally:
-            cur.close(); conn.close()
+            cur.close(); release_db(conn)
 
     return render_template("admin/nuevo-reclutador.html")
 
@@ -103,6 +103,6 @@ def eliminar_reclutador(id):
     cur  = conn.cursor()
     cur.execute("DELETE FROM reclutador WHERE id_reclutador = %s", (id,))
     conn.commit()
-    cur.close(); conn.close()
+    cur.close(); release_db(conn)
     flash("Reclutador eliminado.", "info")
     return redirect(url_for("administrador.panel"))

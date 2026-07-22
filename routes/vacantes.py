@@ -2,7 +2,7 @@ from flask import (
     Blueprint, render_template, request,
     redirect, url_for, session, flash, jsonify
 )
-from services.db import get_db
+from services.db import get_db, release_db
 from routes.auth import login_requerido
 from datetime import date
 from services.analisis import consultar_simulador, calcular_score
@@ -40,7 +40,7 @@ def index():
     """)
     vacantes = cur.fetchall()
     cur.close()
-    conn.close()
+    release_db(conn)
 
     return render_template("public/vacantes.html", vacantes=vacantes)
 
@@ -58,7 +58,7 @@ def detalle(id_vacante):
     """, (id_vacante,))
     vacante = cur.fetchone()
     cur.close()
-    conn.close()
+    release_db(conn)
 
     if not vacante:
         return render_template("404.html"), 404
@@ -93,7 +93,7 @@ def admin_vacantes():
     """, (session["reclutador_id"],))
     vacantes = cur.fetchall()
     cur.close()
-    conn.close()
+    release_db(conn)
 
     return render_template(
         "reclutador/vacantes.html",
@@ -144,7 +144,7 @@ def nueva_vacante_post():
     nueva = cur.fetchone()
     conn.commit()
     cur.close()
-    conn.close()
+    release_db(conn)
 
     flash(f"Vacante '{titulo}' creada correctamente.", "success")
     return redirect(url_for("vacantes.admin_vacantes"))
@@ -208,7 +208,7 @@ def cerrar_vacante(id_vacante):
 
     conn.commit()
     cur.close()
-    conn.close()
+    release_db(conn)
 
     flash("Vacante cerrada. Postulantes analizados y rankeados.", "success")
     return redirect(url_for("vacantes.admin_vacantes"))

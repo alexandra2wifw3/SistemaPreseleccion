@@ -2,7 +2,7 @@ from flask import (
     Blueprint, render_template, request,
     redirect, url_for, session, flash
 )
-from services.db import get_db
+from services.db import get_db, release_db
 import bcrypt
 auth_bp = Blueprint("auth", __name__)
 
@@ -51,7 +51,7 @@ def login_post():
     )
     reclutador = cur.fetchone()
     cur.close()
-    conn.close()
+    release_db(conn)
 
     if not reclutador or not verificar_password(password, reclutador["password_hash"]):
         flash("Correo o contraseña incorrectos.", "error")
