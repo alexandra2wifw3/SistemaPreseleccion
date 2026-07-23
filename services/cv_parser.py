@@ -3,6 +3,21 @@ import requests as req
 import tempfile
 import os
 import re
+import json
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+
+load_dotenv()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+
+# Pausa entre llamadas a Gemini al procesar un lote de postulantes,
+# para no saturar el límite de peticiones por minuto del free tier.
+CV_IA_DELAY_SEGUNDOS = float(os.getenv("CV_IA_DELAY_SEGUNDOS", "3"))
+
+_gemini_client = None
 
 # ════════════════════════════════════════════════════════════════
 #  CV PARSER — Análisis de Hoja de Vida
@@ -226,6 +241,126 @@ def detectar_formacion(texto):
     return 0
 
 
+def get_gemini_client():
+    global _gemini_client
+    if _gemini_client is None:
+        if not GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY no está configurada en .env")
+        _gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+    return _gemini_client
+
+
+ESQUEMA_EXTRACCION_CV = {
+    "type": "object",
+    "properties": {
+        "licencia_detectada": {
+            "type": "string",
+            "enum": ["E", "D", "C", "A1", "G", "NINGUNA"],
+            "description": "Tipo de licencia profesional de conducción más alta mencionada en el CV. NINGUNA si no se menciona ninguna."
+        },
+        "anios_experiencia": {
+            "type": "integer",
+            "description": "Años de experiencia en conducción profesional mencionados o inferidos del CV. 0 si no hay información."
+        },
+        "conceptos_experiencia_flota": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Subconjunto de la lista de conceptos de experiencia en flotas que el CV menciona o implica, aunque use otras palabras."
+        },
+        "conceptos_formacion": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Subconjunto de la lista de conceptos de formación/certificaciones que el CV menciona o implica, aunque use otras palabras."
+        },
+        "cedula_en_cv": {
+            "type": "string",
+            "description": "Número de cédula ecuatoriana (10 dígitos) encontrado en el CV, como texto. Cadena vacía si no aparece ninguna."
+        }
+    },
+    "required": [
+        "licencia_detectada", "anios_experiencia",
+        "conceptos_experiencia_flota", "conceptos_formacion", "cedula_en_cv"
+    ]
+}
+
+
+def extraer_datos_cv_ia(texto):
+    """
+    Usa Gemini para extraer del CV los mismos datos que antes se buscaban
+    por coincidencia literal de palabras, pero de forma semántica —
+    tolera CVs con formato o redacción distintos a la plantilla esperada.
+    """
+    client = get_gemini_client()
+
+    prompt = f"""Eres un extractor de datos de hojas de vida (CV) de conductores profesionales.
+Analiza el siguiente texto de un CV y extrae la información solicitada en el esquema JSON.
+
+Lista de conceptos de EXPERIENCIA EN FLOTAS a buscar (marca solo los que el CV
+menciona o implica claramente, sin inventar):
+{json.dumps(KEYWORDS_EXPERIENCIA, ensure_ascii=False)}
+
+Lista de conceptos de FORMACIÓN/CERTIFICACIONES a buscar (mismo criterio):
+{json.dumps(KEYWORDS_FORMACION, ensure_ascii=False)}
+
+Texto del CV:
+---
+{texto[:8000]}
+---
+"""
+
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=ESQUEMA_EXTRACCION_CV,
+        ),
+    )
+    return json.loads(response.text)
+
+
+def _score_desde_extraccion_ia(datos):
+    """
+    Convierte los datos extraídos por la IA en los mismos puntajes 0-20
+    definidos por la tabla de reglas del proyecto (ver analizar_cv).
+    """
+    tipo_lic = datos.get("licencia_detectada") or "NINGUNA"
+    tipo_lic = None if tipo_lic == "NINGUNA" else tipo_lic
+    pts_licencia = LICENCIAS_PROFESIONALES[tipo_lic]["peso"] if tipo_lic in LICENCIAS_PROFESIONALES else 0
+
+    anios = int(datos.get("anios_experiencia") or 0)
+    if anios >= 6:
+        pts_experiencia = 6
+    elif anios >= 3:
+        pts_experiencia = 4
+    elif anios >= 1:
+        pts_experiencia = 2
+    else:
+        pts_experiencia = 0
+
+    n_flota = len(datos.get("conceptos_experiencia_flota") or [])
+    if n_flota >= 3:
+        pts_flota = 4
+    elif n_flota >= 2:
+        pts_flota = 3
+    elif n_flota >= 1:
+        pts_flota = 2
+    else:
+        pts_flota = 0
+
+    n_formacion = len(datos.get("conceptos_formacion") or [])
+    if n_formacion >= 3:
+        pts_formacion = 4
+    elif n_formacion >= 2:
+        pts_formacion = 3
+    elif n_formacion >= 1:
+        pts_formacion = 2
+    else:
+        pts_formacion = 0
+
+    return tipo_lic, pts_licencia, pts_experiencia, pts_flota, pts_formacion
+
+
 def analizar_cv(pdf_url):
     """
     Analiza el CV y retorna score de 0 a 20 con desglose.
@@ -254,11 +389,21 @@ def analizar_cv(pdf_url):
             "desglose_cv":   {}
         }
 
-    # -- Detecciones ----------------------------
-    tipo_lic, pts_licencia   = detectar_licencia(texto)
-    pts_experiencia          = detectar_experiencia(texto)
-    pts_flota                = detectar_experiencia_flota(texto)
-    pts_formacion            = detectar_formacion(texto)
+    # -- Detecciones: primero IA (Gemini), con respaldo por keywords ----------
+    metodo = "ia"
+    cedula_en_cv = None
+    try:
+        datos_ia = extraer_datos_cv_ia(texto)
+        tipo_lic, pts_licencia, pts_experiencia, pts_flota, pts_formacion = \
+            _score_desde_extraccion_ia(datos_ia)
+        cedula_en_cv = datos_ia.get("cedula_en_cv") or None
+    except Exception as e:
+        print(f"[cv_parser] Gemini no disponible, usando fallback por keywords: {e}")
+        metodo = "keywords"
+        tipo_lic, pts_licencia   = detectar_licencia(texto)
+        pts_experiencia          = detectar_experiencia(texto)
+        pts_flota                = detectar_experiencia_flota(texto)
+        pts_formacion            = detectar_formacion(texto)
 
     score_bruto = (
         pts_licencia +
@@ -269,12 +414,15 @@ def analizar_cv(pdf_url):
     score_cv = min(score_bruto, 20)   # cap en 20
 
     return {
-        "score_cv":    score_cv,
-        "licencia_cv": tipo_lic,
+        "score_cv":     score_cv,
+        "licencia_cv":  tipo_lic,
+        "cedula_en_cv": cedula_en_cv,
+        "metodo":       metodo,
         "detalle":     f"Licencia {tipo_lic or 'no detectada'} · "
                        f"{pts_experiencia} pts experiencia · "
                        f"{pts_flota} pts flota · "
-                       f"{pts_formacion} pts formación",
+                       f"{pts_formacion} pts formación · "
+                       f"(método: {metodo})",
         "desglose_cv": {
             "licencia_detectada": tipo_lic,
             "pts_licencia":       pts_licencia,
@@ -283,5 +431,6 @@ def analizar_cv(pdf_url):
             "pts_formacion":      pts_formacion,
             "score_bruto":        score_bruto,
             "score_aplicado":     score_cv,
+            "metodo":             metodo,
         }
     }
