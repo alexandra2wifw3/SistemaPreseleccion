@@ -6,8 +6,9 @@ from services.db import get_db, release_db
 from routes.auth import login_requerido
 from datetime import date
 from services.analisis import consultar_simulador, calcular_score
-from services.cv_parser import analizar_cv
+from services.cv_parser import analizar_cv, CV_IA_DELAY_SEGUNDOS
 import json
+import time
 
 vacantes_bp = Blueprint("vacantes", __name__)
 
@@ -171,12 +172,11 @@ def cerrar_vacante(id_vacante):
     """, (id_vacante,))
     pendientes = cur.fetchall()
 
-    for p in pendientes:
+    for i, p in enumerate(pendientes):
         try:
             resultado_cv    = analizar_cv(p["archivo_pdf"])
-            score_cv        = resultado_cv.get("score_cv", 0)
             datos_simulador = consultar_simulador(p["cedula"])
-            resultado       = calcular_score(datos_simulador, score_cv)
+            resultado       = calcular_score(datos_simulador, resultado_cv, p["cedula"])
 
             cur.execute("""
                 INSERT INTO resultado_analisis
@@ -204,7 +204,10 @@ def cerrar_vacante(id_vacante):
 
         except Exception as e:
             print(f"[cerrar_vacante] Error procesando {p['cedula']}: {e}")
-            continue
+
+        # Pausa entre cada CV para no saturar el rate limit de Gemini
+        if i < len(pendientes) - 1:
+            time.sleep(CV_IA_DELAY_SEGUNDOS)
 
     conn.commit()
     cur.close()
