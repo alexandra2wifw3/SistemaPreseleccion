@@ -61,10 +61,43 @@
   </div>
 </div>
 
+<!-- Alertas de revisión manual -->
+{% if detalle and detalle.alertas %}
+<div class="card" style="margin-bottom:16px;border-color:rgba(239,68,68,0.35);background:rgba(239,68,68,0.05);">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+    <span style="font-size:1.3rem;">⚠️</span>
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--red);font-weight:700;">
+      Requiere revisión de RR.HH. — {{ detalle.alertas|length }} alerta{{ 's' if detalle.alertas|length > 1 else '' }}
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    {% for a in detalle.alertas %}
+    <div class="alert {% if a.severidad == 'alta' %}alert-error{% else %}alert-warning{% endif %}"
+         style="margin-bottom:0;display:flex;align-items:flex-start;gap:10px;">
+      <span>{% if a.severidad == 'alta' %}🔴{% else %}🟠{% endif %}</span>
+      <span>{{ a.mensaje }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p style="font-size:0.72rem;color:var(--gray);margin-top:12px;line-height:1.6;">
+    Estas alertas no modifican el score ni la decisión automática — el sistema apoya la
+    decisión, no la reemplaza. Revisa el caso antes de confirmar la contratación.
+  </p>
+</div>
+{% endif %}
+
 <!-- Licencia y citaciones -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
   <div class="card">
-    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:14px;">Licencia de Conducir</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);">Licencia de Conducir</div>
+      {% if detalle and detalle.historial_puntos %}
+      <button onclick="document.getElementById('modalCronologia').style.display='flex'"
+              class="btn btn-secondary" style="padding:5px 12px;font-size:0.72rem;">
+        📈 Ver cronología de puntos
+      </button>
+      {% endif %}
+    </div>
     <div style="font-family:'DM Mono',monospace;font-size:0.82rem;line-height:2.1;color:var(--gray);">
       Tipo: <span style="color:var(--white);font-size:1.1rem;font-weight:700;">{{ candidato.licencia_tipo or '—' }}</span><br>
       Puntos: <span style="color:var(--white);">{{ candidato.licencia_puntos or '—' }} / 30</span><br>
@@ -175,12 +208,17 @@
           <td>{{ inf.articulo }}</td>
           <td style="color:var(--red);">-{{ inf.penalizacion }}</td>
           <td>
-            {% if inf.estado == 'pendiente' %}
+            {% set est = (inf.estado or '')|lower %}
+            {% if est == 'pendiente' %}
               <span class="pill pill-amber">Pendiente</span>
-            {% elif inf.estado == 'pagada' %}
+            {% elif est == 'pagada' %}
               <span class="pill pill-green">Pagada</span>
-            {% elif inf.estado == 'impugnada' %}
+            {% elif est == 'impugnada' %}
               <span class="pill pill-blue">Impugnada</span>
+            {% elif est == 'anulada' %}
+              <span class="pill pill-gray">Anulada</span>
+            {% elif est == 'en_convenio' %}
+              <span class="pill" style="background:rgba(167,139,250,0.12);color:#a78bfa;border:1px solid rgba(167,139,250,0.3);">En Convenio</span>
             {% else %}
               <span class="pill pill-gray">{{ inf.estado }}</span>
             {% endif %}
@@ -189,6 +227,72 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal: Cronología de puntos -->
+{% if detalle and detalle.historial_puntos %}
+<div id="modalCronologia" onclick="if(event.target===this) this.style.display='none'" style="
+  display:none; position:fixed; inset:0; z-index:999;
+  background:rgba(10,22,40,0.85); backdrop-filter:blur(6px);
+  align-items:center; justify-content:center; padding:24px;">
+  <div style="background:#0f1f3a;border:1px solid var(--border);border-radius:16px;
+       max-width:720px;width:100%;max-height:82vh;display:flex;flex-direction:column;
+       box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;
+         padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div>
+        <div style="font-size:1.05rem;font-weight:800;">📈 Cronología de Puntos</div>
+        <div style="font-size:0.76rem;color:var(--gray);margin-top:2px;">
+          {{ candidato.apellidos }} {{ candidato.nombres }} — Art. 187 LOTTTSV
+        </div>
+      </div>
+      <button onclick="document.getElementById('modalCronologia').style.display='none'"
+              class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;">✕</button>
+    </div>
+
+    <div style="padding:16px 24px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="display:flex;justify-content:space-between;font-size:0.76rem;color:var(--gray);margin-bottom:6px;">
+        <span>Saldo actual de puntos</span>
+        <strong style="color:var(--white);">{{ candidato.licencia_puntos or 0 }} / 30</strong>
+      </div>
+      {% set pct = ((candidato.licencia_puntos or 0) / 30 * 100)|round|int %}
+      <div style="height:8px;background:rgba(255,255,255,0.06);border-radius:20px;overflow:hidden;">
+        <div style="height:100%;width:{{ pct }}%;border-radius:20px;
+             background:{% if pct > 60 %}var(--green){% elif pct > 30 %}var(--amber){% else %}var(--red){% endif %};"></div>
+      </div>
+    </div>
+
+    <div style="overflow-y:auto;padding:0 24px 20px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Observación</th>
+            <th>Tipo</th>
+            <th>Anterior</th>
+            <th>Cambio</th>
+            <th>Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in detalle.historial_puntos %}
+          <tr>
+            <td class="td-text" style="white-space:nowrap;">{{ h.fecha }}</td>
+            <td class="td-text">{{ h.observacion or '—' }}</td>
+            <td style="text-transform:uppercase;font-size:0.72rem;color:var(--gray);">{{ h.tipo_movimiento or '—' }}</td>
+            <td>{{ h.puntos_anterior }}</td>
+            <td style="color:{% if h.cantidad_puntos < 0 %}var(--red){% elif h.cantidad_puntos > 0 %}var(--green){% else %}var(--gray){% endif %};font-weight:700;">
+              {{ '+' if h.cantidad_puntos > 0 else '' }}{{ h.cantidad_puntos }}
+            </td>
+            <td style="font-weight:700;">{{ h.saldo_puntos }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 {% endif %}
