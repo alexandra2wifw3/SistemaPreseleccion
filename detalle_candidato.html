@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}Detalle — {{ candidato.nombres }} {{ candidato.apellidos }}{% endblock %}
+
+{% block content %}
+
+<a href="javascript:history.back()" style="font-size:0.82rem;color:var(--gray);text-decoration:none;
+   display:inline-flex;align-items:center;gap:6px;margin-bottom:24px;">
+  ← Volver al ranking
+</a>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+  <!-- Info personal -->
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:14px;">Datos del Postulante</div>
+    <div style="font-size:1.3rem;font-weight:800;margin-bottom:10px;">
+      {{ candidato.apellidos }} {{ candidato.nombres }}
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray);line-height:2;">
+      CI: <span style="color:var(--white);">{{ candidato.cedula }}</span><br>
+      Teléfono: <span style="color:var(--white);">{{ candidato.telefono or '—' }}</span><br>
+      Email: <span style="color:var(--white);">{{ candidato.email or '—' }}</span><br>
+      Postulado: <span style="color:var(--white);">{{ candidato.created_at.strftime('%d/%m/%Y %H:%M') if candidato.created_at else '—' }}</span>
+    </div>
+    {% if candidato.archivo_pdf %}
+    <a href="{{ candidato.archivo_pdf }}" target="_blank"
+       class="btn btn-secondary" style="margin-top:16px;padding:8px 16px;font-size:0.8rem;">
+      📄 Ver Hoja de Vida
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Score y estado -->
+  <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:14px;">Resultado de Evaluación</div>
+
+    <div style="display:flex;align-items:center;gap:24px;">
+      <!-- Score total -->
+      <div style="text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:3.2rem;font-weight:500;line-height:1;
+             color:{% if (candidato.score_total or 0) >= 70 %}var(--green){% elif (candidato.score_total or 0) >= 50 %}var(--amber){% else %}var(--red){% endif %};">
+          {{ candidato.score_total or 0 }}
+        </div>
+        <div style="font-size:0.65rem;color:var(--gray);text-transform:uppercase;margin-top:4px;">score / 100</div>
+      </div>
+
+      <!-- Desglose -->
+      <div style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray);line-height:2.1;">
+        Regulatorio: <span style="color:var(--white);">{{ candidato.score_regulatorio or 0 }}</span><br>
+        Bonus CV: <span style="color:var(--white);">{{ candidato.score_cv or 0 }}</span><br>
+        Estado:
+        {% if candidato.estado == 'aprobado' %}
+          <span class="pill pill-green">Aprobado</span>
+        {% elif candidato.estado == 'rechazado' %}
+          <span class="pill pill-red">Rechazado</span>
+        {% else %}
+          <span class="pill pill-amber">Pendiente</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Alertas de revisión manual -->
+{% if detalle and detalle.alertas %}
+<div class="card" style="margin-bottom:16px;border-color:rgba(239,68,68,0.35);background:rgba(239,68,68,0.05);">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+    <span style="font-size:1.3rem;">⚠️</span>
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--red);font-weight:700;">
+      Requiere revisión de RR.HH. — {{ detalle.alertas|length }} alerta{{ 's' if detalle.alertas|length > 1 else '' }}
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    {% for a in detalle.alertas %}
+    <div class="alert {% if a.severidad == 'alta' %}alert-error{% else %}alert-warning{% endif %}"
+         style="margin-bottom:0;display:flex;align-items:flex-start;gap:10px;">
+      <span>{% if a.severidad == 'alta' %}🔴{% else %}🟠{% endif %}</span>
+      <span>{{ a.mensaje }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p style="font-size:0.72rem;color:var(--gray);margin-top:12px;line-height:1.6;">
+    Estas alertas no modifican el score ni la decisión automática — el sistema apoya la
+    decisión, no la reemplaza. Revisa el caso antes de confirmar la contratación.
+  </p>
+</div>
+{% endif %}
+
+<!-- Licencia y citaciones -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);">Licencia de Conducir</div>
+      {% if detalle and detalle.historial_puntos %}
+      <button onclick="document.getElementById('modalCronologia').style.display='flex'"
+              class="btn btn-secondary" style="padding:5px 12px;font-size:0.72rem;">
+        📈 Ver cronología de puntos
+      </button>
+      {% endif %}
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.82rem;line-height:2.1;color:var(--gray);">
+      Tipo: <span style="color:var(--white);font-size:1.1rem;font-weight:700;">{{ candidato.licencia_tipo or '—' }}</span><br>
+      Puntos: <span style="color:var(--white);">{{ candidato.licencia_puntos or '—' }} / 30</span><br>
+      Estado:
+      {% if candidato.licencia_estado == 'ACTIVA' %}
+        <span class="pill pill-green">ACTIVA</span>
+      {% elif candidato.licencia_estado == 'SUSPENDIDA' %}
+        <span class="pill pill-red">SUSPENDIDA</span>
+      {% elif candidato.licencia_estado == 'CADUCADA' %}
+        <span class="pill pill-amber">CADUCADA</span>
+      {% else %}
+        <span style="color:var(--white);">{{ candidato.licencia_estado or '—' }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:14px;">Citaciones</div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.82rem;line-height:2.1;color:var(--gray);">
+      Pendientes:
+      <span style="color:{% if candidato.citaciones_pendientes %}var(--red){% else %}var(--green){% endif %};">
+        {{ candidato.citaciones_pendientes or 0 }}
+      </span><br>
+      Deuda pendiente:
+      <span style="color:{% if candidato.deuda_pendiente %}var(--red){% else %}var(--green){% endif %};">
+        $ {{ '%.2f'|format(candidato.deuda_pendiente|float) if candidato.deuda_pendiente else '0.00' }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Desglose del score -->
+{% if detalle and detalle.desglose %}
+<div class="card" style="margin-bottom:16px;">
+  <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:16px;">
+    Desglose del Score — Base legal: COIP 2021 Arts. 383-392
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+    {% set d = detalle.desglose %}
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;">
+      <div style="font-size:0.65rem;text-transform:uppercase;color:var(--gray);margin-bottom:6px;">Licencia</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.3rem;color:var(--white);">{{ d.licencia }}</div>
+      <div style="font-size:0.6rem;color:var(--gray);">Art. 186 LOTTTSV</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;">
+      <div style="font-size:0.65rem;text-transform:uppercase;color:var(--gray);margin-bottom:6px;">Puntos Lic.</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.3rem;color:var(--white);">{{ d.puntos }}</div>
+      <div style="font-size:0.6rem;color:var(--gray);">Art. 187 LOTTTSV</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;">
+      <div style="font-size:0.65rem;text-transform:uppercase;color:var(--gray);margin-bottom:6px;">Citaciones</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.3rem;color:var(--white);">{{ d.citaciones }}</div>
+      <div style="font-size:0.6rem;color:var(--gray);">Arts. 383-392 COIP</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;">
+      <div style="font-size:0.65rem;text-transform:uppercase;color:var(--gray);margin-bottom:6px;">Deuda</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.3rem;color:var(--white);">{{ d.deuda }}</div>
+      <div style="font-size:0.6rem;color:var(--gray);">Art. 193 LOTTTSV</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;">
+      <div style="font-size:0.65rem;text-transform:uppercase;color:var(--gray);margin-bottom:6px;">Penalización</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.3rem;color:var(--red);">{{ d.penalizacion }}</div>
+      <div style="font-size:0.6rem;color:var(--gray);">Arts. 383-392 COIP</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;">
+      <div style="font-size:0.65rem;text-transform:uppercase;color:var(--gray);margin-bottom:6px;">Bonus CV</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.3rem;color:var(--cyan);">+{{ d.bonus_cv }}</div>
+      <div style="font-size:0.6rem;color:var(--gray);">Hoja de vida</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Infracciones detalladas -->
+{% if detalle and detalle.infracciones %}
+<div class="card">
+  <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin-bottom:14px;">
+    Infracciones Registradas
+  </div>
+  <div class="table-wrap" style="border:none;border-radius:10px;">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Infracción</th>
+          <th>Clase</th>
+          <th>Artículo</th>
+          <th>Penalización</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inf in detalle.infracciones %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td class="td-text">{{ inf.nombre }}</td>
+          <td>
+            {% if inf.clase == 'muy_grave' %}
+              <span class="pill pill-red">Muy grave</span>
+            {% elif inf.clase in ['grave_1','grave_2'] %}
+              <span class="pill pill-amber">Grave</span>
+            {% elif inf.clase == 'grave_sin_puntos' %}
+              <span class="pill pill-amber">Grave s/pts</span>
+            {% else %}
+              <span class="pill pill-gray">Leve</span>
+            {% endif %}
+          </td>
+          <td>{{ inf.articulo }}</td>
+          <td style="color:var(--red);">-{{ inf.penalizacion }}</td>
+          <td>
+            {% set est = (inf.estado or '')|lower %}
+            {% if est == 'pendiente' %}
+              <span class="pill pill-amber">Pendiente</span>
+            {% elif est == 'pagada' %}
+              <span class="pill pill-green">Pagada</span>
+            {% elif est == 'impugnada' %}
+              <span class="pill pill-blue">Impugnada</span>
+            {% elif est == 'anulada' %}
+              <span class="pill pill-gray">Anulada</span>
+            {% elif est == 'en_convenio' %}
+              <span class="pill" style="background:rgba(167,139,250,0.12);color:#a78bfa;border:1px solid rgba(167,139,250,0.3);">En Convenio</span>
+            {% else %}
+              <span class="pill pill-gray">{{ inf.estado }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal: Cronología de puntos -->
+{% if detalle and detalle.historial_puntos %}
+<div id="modalCronologia" onclick="if(event.target===this) this.style.display='none'" style="
+  display:none; position:fixed; inset:0; z-index:999;
+  background:rgba(10,22,40,0.85); backdrop-filter:blur(6px);
+  align-items:center; justify-content:center; padding:24px;">
+  <div style="background:#0f1f3a;border:1px solid var(--border);border-radius:16px;
+       max-width:720px;width:100%;max-height:82vh;display:flex;flex-direction:column;
+       box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;
+         padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div>
+        <div style="font-size:1.05rem;font-weight:800;">📈 Cronología de Puntos</div>
+        <div style="font-size:0.76rem;color:var(--gray);margin-top:2px;">
+          {{ candidato.apellidos }} {{ candidato.nombres }} — Art. 187 LOTTTSV
+        </div>
+      </div>
+      <button onclick="document.getElementById('modalCronologia').style.display='none'"
+              class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;">✕</button>
+    </div>
+
+    <div style="padding:16px 24px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="display:flex;justify-content:space-between;font-size:0.76rem;color:var(--gray);margin-bottom:6px;">
+        <span>Saldo actual de puntos</span>
+        <strong style="color:var(--white);">{{ candidato.licencia_puntos or 0 }} / 30</strong>
+      </div>
+      {% set pct = ((candidato.licencia_puntos or 0) / 30 * 100)|round|int %}
+      <div style="height:8px;background:rgba(255,255,255,0.06);border-radius:20px;overflow:hidden;">
+        <div style="height:100%;width:{{ pct }}%;border-radius:20px;
+             background:{% if pct > 60 %}var(--green){% elif pct > 30 %}var(--amber){% else %}var(--red){% endif %};"></div>
+      </div>
+    </div>
+
+    <div style="overflow-y:auto;padding:0 24px 20px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Observación</th>
+            <th>Tipo</th>
+            <th>Anterior</th>
+            <th>Cambio</th>
+            <th>Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in detalle.historial_puntos %}
+          <tr>
+            <td class="td-text" style="white-space:nowrap;">{{ h.fecha }}</td>
+            <td class="td-text">{{ h.observacion or '—' }}</td>
+            <td style="text-transform:uppercase;font-size:0.72rem;color:var(--gray);">{{ h.tipo_movimiento or '—' }}</td>
+            <td>{{ h.puntos_anterior }}</td>
+            <td style="color:{% if h.cantidad_puntos < 0 %}var(--red){% elif h.cantidad_puntos > 0 %}var(--green){% else %}var(--gray){% endif %};font-weight:700;">
+              {{ '+' if h.cantidad_puntos > 0 else '' }}{{ h.cantidad_puntos }}
+            </td>
+            <td style="font-weight:700;">{{ h.saldo_puntos }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
