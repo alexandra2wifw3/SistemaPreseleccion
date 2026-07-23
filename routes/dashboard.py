@@ -100,6 +100,16 @@ def resultados(id_vacante):
     """, (id_vacante,))
     candidatos = cur.fetchall()
 
+    # Adjuntar alertas de revision (vienen dentro de detalle_json)
+    for c in candidatos:
+        alertas = []
+        if c.get("detalle_json"):
+            try:
+                alertas = json.loads(c["detalle_json"]).get("alertas", [])
+            except Exception:
+                alertas = []
+        c["alertas"] = alertas
+
     # Estadísticas del ranking
     total      = len(candidatos)
     aprobados  = sum(1 for c in candidatos if c["estado"] == "aprobado")
@@ -189,12 +199,11 @@ def procesar_pendientes(id_vacante):
     pendientes = cur.fetchall()
 
     procesados = 0
-    for p in pendientes:
+    for i, p in enumerate(pendientes):
         try:
             resultado_cv    = analizar_cv(p["archivo_pdf"])
-            score_cv        = resultado_cv.get("score_cv", 0)
             datos_simulador = consultar_simulador(p["cedula"])
-            resultado       = calcular_score(datos_simulador, score_cv)
+            resultado       = calcular_score(datos_simulador, resultado_cv, p["cedula"])
 
             # Guardar resultado
             cur.execute("""
@@ -241,7 +250,10 @@ def procesar_pendientes(id_vacante):
 
         except Exception as e:
             print(f"[dashboard] Error procesando {p['cedula']}: {e}")
-            continue
+
+        # Pausa entre cada CV para no saturar el rate limit de Gemini
+        if i < len(pendientes) - 1:
+            time.sleep(CV_IA_DELAY_SEGUNDOS)
 
     conn.commit()
     cur.close()
