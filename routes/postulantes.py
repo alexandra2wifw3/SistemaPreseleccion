@@ -2,7 +2,7 @@ from flask import (
     Blueprint, render_template, request, jsonify, session
 )
 from routes.auth import login_requerido
-from services.db      import get_db
+from services.db      import get_db, release_db
 from services.storage import subir_pdf
 from datetime import date
 import traceback
