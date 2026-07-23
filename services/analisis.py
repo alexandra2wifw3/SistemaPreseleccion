@@ -117,7 +117,7 @@ def clasificar_infraccion(puntos_restados, nombre_infraccion=""):
     return "leve"
 
 
-def calcular_score(datos_simulador, score_cv=0):
+def calcular_score(datos_simulador, resultado_cv=None, cedula_postulante=None):
     """
     Calcula score 0-100 con respaldo en el COIP 2021.
 
@@ -151,6 +151,12 @@ def calcular_score(datos_simulador, score_cv=0):
     anuladas   = datos_simulador.get("anuladas")   or []
     citaciones = datos_simulador.get("citaciones") or []
     deuda      = float(datos_simulador.get("total_pendiente") or 0)
+    historial_puntos = datos_simulador.get("historial_puntos") or []
+
+    resultado_cv     = resultado_cv or {}
+    score_cv         = resultado_cv.get("score_cv", 0)
+    cedula_en_cv     = resultado_cv.get("cedula_en_cv") or None
+    cv_no_legible    = not resultado_cv.get("desglose_cv")
 
     # -- 1. ESTADO DE LICENCIA (40 pts) ----------------------------
     # Base legal: Art. 186 LOTTTSV — requisito de licencia vigente
@@ -247,6 +253,40 @@ def calcular_score(datos_simulador, score_cv=0):
     score_total       = min(100, score_regulatorio + score_cv_aplicado)
     estado            = "aprobado" if score_total >= 60 else "rechazado"
 
+    # -- Alertas de revisión manual ----------------------------
+    # No cambian el score_total ni el estado: son avisos para que RR.HH.
+    # revise el caso antes de decidir, aunque el puntaje lo apruebe.
+    alertas = []
+
+    if estado_lic == "SUSPENDIDA":
+        alertas.append({
+            "tipo":     "licencia_suspendida",
+            "severidad": "alta",
+            "mensaje":  "Licencia de conducir SUSPENDIDA — sin autorización legal vigente para conducir (Art. 186 LOTTTSV).",
+        })
+
+    for inf in infracciones_det:
+        if inf["clase"] == "muy_grave" and (inf.get("estado") or "").lower() == "pendiente":
+            alertas.append({
+                "tipo":     "citacion_muy_grave_pendiente",
+                "severidad": "alta",
+                "mensaje":  f"Citación MUY GRAVE pendiente de pago: {inf['nombre']} ({inf['articulo']}).",
+            })
+
+    if cv_no_legible:
+        alertas.append({
+            "tipo":     "cv_no_legible",
+            "severidad": "media",
+            "mensaje":  "No se pudo extraer texto del PDF de la hoja de vida — el score de CV es 0 por defecto, revisar el archivo manualmente.",
+        })
+
+    if cedula_postulante and cedula_en_cv and cedula_en_cv != cedula_postulante:
+        alertas.append({
+            "tipo":     "cedula_no_coincide",
+            "severidad": "media",
+            "mensaje":  f"La cédula detectada dentro del CV ({cedula_en_cv}) no coincide con la cédula declarada en el formulario ({cedula_postulante}).",
+        })
+
     return {
         # ── Resultado final ----------------------------
         "score_regulatorio":      score_regulatorio,
@@ -279,6 +319,13 @@ def calcular_score(datos_simulador, score_cv=0):
 
         # -- Detalle de cada infracción clasificada ----------------------------
         "infracciones": infracciones_det,
+
+        # -- Cronología de puntos de licencia (Art. 187 LOTTTSV) ----------------------------
+        "historial_puntos": historial_puntos,
+
+        # -- Alertas de revisión manual para RR.HH. ----------------------------
+        "alertas":      alertas,
+        "tiene_alertas": len(alertas) > 0,
 
         # -- Base legal  ----------------------------
         "base_legal": {
