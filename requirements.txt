@@ -6,3 +6,4 @@ supabase
 pdfplumber
 requests
 gunicorn
+google-genai

@@ -4,10 +4,11 @@ from flask import (
 )
 from services.db import get_db, release_db
 from services.analisis import consultar_simulador, calcular_score
-from services.cv_parser import analizar_cv
+from services.cv_parser import analizar_cv, CV_IA_DELAY_SEGUNDOS
 from routes.auth      import login_requerido
 from datetime import date
 import json
+import time
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
